@@ -97,8 +97,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Check example doc internal links
-        uses: weibye/example_checker
+      - uses: Weibye/example_checker@main
         with:
           source: './examples/'
           file-types: '["rs"]'
