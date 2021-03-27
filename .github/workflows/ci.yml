@@ -92,3 +92,16 @@ jobs:
           DEFAULT_BRANCH: master
           # Not needed here as only one Linter is used.
           #GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
+  example-doc-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Check example doc internal links
+        uses: weibye/example_checker
+        with:
+          source: './examples/'
+          file-types: '["rs"]'
+          exclude-folders: '["./examples/ios"]'
+          exclude-files: '[]'
+          targets: '[ { "Path": "./Cargo.toml", "Style": 1 }, { "Path": "./examples/README.md", "Style": 0 }]'
