@@ -7,7 +7,10 @@ use crate::{
 use bevy_app::{App, Plugin};
 use bevy_ecs::prelude::*;
 use bevy_utils::{tracing::debug, HashMap, HashSet};
-use bevy_window::{PresentMode, RawWindowHandleWrapper, WindowClosed, WindowId, Windows};
+use bevy_window::{
+    PresentMode, RawWindowHandleWrapper, Window, WindowClosed, WindowHandle, WindowPresentation,
+    WindowResolution,
+};
 use std::ops::{Deref, DerefMut};
 use wgpu::TextureFormat;
 
@@ -39,7 +42,7 @@ impl Plugin for WindowRenderPlugin {
 }
 
 pub struct ExtractedWindow {
-    pub id: WindowId,
+    pub id: Entity,
     pub handle: RawWindowHandleWrapper,
     pub physical_width: u32,
     pub physical_height: u32,
@@ -50,11 +53,11 @@ pub struct ExtractedWindow {
 
 #[derive(Default, Resource)]
 pub struct ExtractedWindows {
-    pub windows: HashMap<WindowId, ExtractedWindow>,
+    pub windows: HashMap<Entity, ExtractedWindow>,
 }
 
 impl Deref for ExtractedWindows {
-    type Target = HashMap<WindowId, ExtractedWindow>;
+    type Target = HashMap<Entity, ExtractedWindow>;
 
     fn deref(&self) -> &Self::Target {
         &self.windows
@@ -68,28 +71,34 @@ impl DerefMut for ExtractedWindows {
 }
 
 fn extract_windows(
-    mut extracted_windows: ResMut<ExtractedWindows>,
-    mut closed: Extract<EventReader<WindowClosed>>,
-    windows: Extract<Res<Windows>>,
+    mut render_world: ResMut<RenderWorld>,
+    mut closed: EventReader<WindowClosed>,
+    windows: Query<
+        (
+            Entity,
+            &WindowResolution,
+            &WindowHandle,
+            &WindowPresentation,
+        ),
+        With<Window>,
+    >,
 ) {
-    for window in windows.iter() {
+    let mut extracted_windows = render_world.get_resource_mut::<ExtractedWindows>().unwrap();
+    for (entity, resolution, handle, presentation) in windows.iter() {
         let (new_width, new_height) = (
-            window.physical_width().max(1),
-            window.physical_height().max(1),
+            resolution.physical_width().max(1),
+            resolution.physical_height().max(1),
         );
 
-        let mut extracted_window =
-            extracted_windows
-                .entry(window.id())
-                .or_insert(ExtractedWindow {
-                    id: window.id(),
-                    handle: window.raw_window_handle(),
-                    physical_width: new_width,
-                    physical_height: new_height,
-                    present_mode: window.present_mode(),
-                    swap_chain_texture: None,
-                    size_changed: false,
-                });
+        let mut extracted_window = extracted_windows.entry(entity).or_insert(ExtractedWindow {
+            id: entity,
+            handle: handle.raw_window_handle(),
+            physical_width: new_width,
+            physical_height: new_height,
+            present_mode: presentation.present_mode(),
+            swap_chain_texture: None,
+            size_changed: false,
+        });
 
         // NOTE: Drop the swap chain frame here
         extracted_window.swap_chain_texture = None;
@@ -109,15 +118,15 @@ fn extract_windows(
         }
     }
     for closed_window in closed.iter() {
-        extracted_windows.remove(&closed_window.id);
+        extracted_windows.remove(&closed_window.entity);
     }
 }
 
 #[derive(Resource, Default)]
 pub struct WindowSurfaces {
-    surfaces: HashMap<WindowId, wgpu::Surface>,
+    surfaces: HashMap<Entity, wgpu::Surface>,
     /// List of windows that we have already called the initial `configure_surface` for
-    configured_windows: HashSet<WindowId>,
+    configured_windows: HashSet<Entity>,
 }
 
 /// Creates and (re)configures window surfaces, and obtains a swapchain texture for rendering.
