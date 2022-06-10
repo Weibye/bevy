@@ -16,6 +16,7 @@ use system::{
     update_window_mode, window_destroyed,
 };
 
+use winit::event_loop;
 pub use winit_config::*;
 pub use winit_windows::*;
 
@@ -82,29 +83,39 @@ impl Plugin for WinitPlugin {
             );
         #[cfg(target_arch = "wasm32")]
         app.add_plugin(web_resize::CanvasParentResizePlugin);
+
         let event_loop = EventLoop::new();
         #[cfg(not(target_os = "android"))]
         let mut create_window_reader = WinitCreateWindowReader::default();
         // TODO: Test if any issues has been caused here
         // Note that we create a window here "early" because WASM/WebGL requires the window to exist prior to initializing
         // the renderer.
+        app.insert_resource(create_window_reader)
+            .insert_non_send_resource(event_loop);
 
-        let world_cell = app.world.cell();
-        let mut winit_windows = world_cell.non_send_resource_mut::<WinitWindows>();
-        let create_window_events = world_cell.resource::<Events<CreateWindow>>();
-        let mut window_created_events = world_cell.resource_mut::<Events<WindowCreated>>();
+        let mut system_state: SystemState<(
+            Commands,
+            EventReader<CreateWindow>,
+            EventWriter<WindowCreated>,
+            NonSendMut<WinitWindows>,
+            NonSendMut<EventLoop<()>>,
+        )> = SystemState::new(&mut app.world);
+        let (
+            mut commands,
+            mut create_window_events,
+            mut window_created_events,
+            mut winit_windows,
+            mut event_loop,
+        ) = system_state.get_mut(&mut app.world);
 
+        // Run it once here in startup. It will be run again on the MainEventsCleared update event
         create_windows(
             commands,
-            &event_loop,
+            event_loop,
             create_window_events,
             window_created_events,
             winit_windows,
         );
-
-        handle_create_window_events(&mut app.world, &event_loop, &mut create_window_reader.0);
-        app.insert_resource(create_window_reader)
-            .insert_non_send_resource(event_loop);
     }
 }
 
@@ -246,15 +257,19 @@ pub fn winit_runner_with(mut app: App) {
     let event_handler = move |event: Event<()>,
                               event_loop: &EventLoopWindowTarget<()>,
                               control_flow: &mut ControlFlow| {
+        // TODO move all system state fetch up here?
+
         match event {
             event::Event::NewEvents(start) => {
-                let winit_config = app.world.resource::<WinitSettings>();
-
-                // Collection of windows
-                let mut system_state: SystemState<
+                // Fetch from the world
+                let mut system_state: SystemState<(
+                    Res<WinitSettings>,
                     Query<Entity, (With<WindowCurrentlyFocused>, With<Window>)>,
-                > = SystemState::new(&mut app.world);
-                let any_window_focused = !system_state.get(&app.world).is_empty();
+                )> = SystemState::new(&mut app.world);
+
+                let (winit_config, window_focused_query) = system_state.get(&mut app.world);
+
+                let any_window_focused = !window_focused_query.is_empty();
 
                 // Check if either the `WaitUntil` timeout was triggered by winit, or that same
                 // amount of time has elapsed since the last app update. This manual check is needed
@@ -280,6 +295,7 @@ pub fn winit_runner_with(mut app: App) {
             } => {
                 // Fetch and prepare details from the world
                 let mut system_state: SystemState<(
+                    Commands,
                     NonSend<WinitWindows>,
                     Query<
                         (
@@ -297,6 +313,7 @@ pub fn winit_runner_with(mut app: App) {
                     EventWriter<FileDragAndDrop>,
                 )> = SystemState::new(&mut app.world);
                 let (
+                    mut commands,
                     winit_windows,
                     mut window_query,
                     primary_window,
@@ -491,7 +508,7 @@ pub fn winit_runner_with(mut app: App) {
                             .to_physical::<u32>(forced_factor);
                             // TODO: Should this not trigger a WindowsScaleFactorChanged?
                         } else if approx::relative_ne!(new_factor, prior_factor) {
-                            // Trigger a change event if they are approx different
+                            // Trigger a change event if they are approximately different
                             window_events.window_scale_factor_changed.send(
                                 WindowScaleFactorChanged {
                                     entity: window_entity,
@@ -521,26 +538,21 @@ pub fn winit_runner_with(mut app: App) {
                     }
                     WindowEvent::Focused(focused) => {
                         // Component
-                        // TODO: Borrow checker complains
-                        let mut entity_mut = app
-                            .world
-                            .get_entity_mut(window_entity)
-                            .expect("Entity for window should exist");
-
-                        // TODO: How to insert and remove components and still pleasing the borrow checker?
                         if focused {
-                            entity_mut.insert(WindowCurrentlyFocused);
+                            commands
+                                .entity(window_entity)
+                                .insert(WindowCurrentlyFocused);
                         } else {
-                            entity_mut.remove::<WindowCurrentlyFocused>();
+                            commands
+                                .entity(window_entity)
+                                .remove::<WindowCurrentlyFocused>();
                         }
 
                         // Event
-                        window_events
-                            .window_focused
-                            .send(WindowFocused {
-                                entity: window_entity,
-                                focused,
-                            });
+                        window_events.window_focused.send(WindowFocused {
+                            entity: window_entity,
+                            focused,
+                        });
                     }
                     WindowEvent::DroppedFile(path_buf) => {
                         file_drag_and_drop_events.send(FileDragAndDrop::DroppedFile {
@@ -561,8 +573,8 @@ pub fn winit_runner_with(mut app: App) {
                     }
                     WindowEvent::Moved(position) => {
                         let position = ivec2(position.x, position.y);
+
                         // Component
-                        // TODO: Borrow checker complains
                         let (_, _, _, mut window_position) = window_query
                             .get_mut(window_entity)
                             .expect("Window should have a WindowPosition component");
@@ -596,23 +608,38 @@ pub fn winit_runner_with(mut app: App) {
                 winit_state.active = true;
             }
             event::Event::MainEventsCleared => {
-                handle_create_window_events(
-                    &mut app.world,
+                let mut system_state: SystemState<(
+                    Commands,
+                    EventReader<CreateWindow>,
+                    EventWriter<WindowCreated>,
+                    NonSendMut<WinitWindows>,
+                    NonSendMut<EventLoop<()>>,
+                    Res<WinitSettings>,
+                    Query<Entity, (With<Window>, With<WindowCurrentlyFocused>)>,
+                )> = SystemState::new(&mut app.world);
+                let (
+                    mut commands,
+                    mut create_window_events,
+                    mut window_created_events,
+                    mut winit_windows,
+                    mut event_loop,
+                    winit_config,
+                    window_focused_query,
+                ) = system_state.get_mut(&mut app.world);
+
+                // Responsible for creating new windows
+                create_windows(
+                    commands,
                     event_loop,
-                    &mut create_window_event_reader,
+                    create_window_events,
+                    window_created_events,
+                    winit_windows,
                 );
-                let winit_config = app.world.resource::<WinitSettings>();
+
                 let update = if winit_state.active {
                     // True if _any_ windows are currently being focused
-                    // TODO: Borrow checker complains
-                    let mut windows_focused_query = app
-                        .world
-                        .query_filtered::<Entity, (With<Window>, With<WindowCurrentlyFocused>)>();
-                    let focused = windows_focused_query
-                        .iter(&app.world)
-                        .collect::<Vec<Entity>>()
-                        .len()
-                        > 0;
+                    // TODO: Do we need to fetch windows again since new ones might have been created and they might be focused?
+                    let focused = !window_focused_query.is_empty();
                     match winit_config.update_mode(focused) {
                         UpdateMode::Continuous | UpdateMode::Reactive { .. } => true,
                         UpdateMode::ReactiveLowPower { .. } => {
@@ -631,18 +658,16 @@ pub fn winit_runner_with(mut app: App) {
             }
             Event::RedrawEventsCleared => {
                 {
-                    let winit_config = app.world.resource::<WinitSettings>();
+                    // Fetch from world
+                    let mut system_state: SystemState<(
+                        Res<WinitSettings>,
+                        Query<Entity, (With<Window>, With<WindowCurrentlyFocused>)>,
+                    )> = SystemState::new(&mut app.world);
+
+                    let (winit_config, window_focused_query) = system_state.get(&mut app.world);
 
                     // True if _any_ windows are currently being focused
-                    // TODO: Borrow checker complains
-                    let mut windows_focused_query = app
-                        .world
-                        .query_filtered::<Entity, (With<Window>, With<WindowCurrentlyFocused>)>();
-                    let focused = windows_focused_query
-                        .iter(&app.world)
-                        .collect::<Vec<Entity>>()
-                        .len()
-                        > 0;
+                    let focused = !window_focused_query.is_empty();
 
                     let now = Instant::now();
                     use UpdateMode::*;
@@ -684,51 +709,5 @@ pub fn winit_runner_with(mut app: App) {
         run_return(&mut event_loop, event_handler);
     } else {
         run(event_loop, event_handler);
-    }
-}
-
-// TODO: Remove this is favour of the create_window system, if possible
-fn handle_create_window_events(
-    world: &mut World,
-    event_loop: &EventLoopWindowTarget<()>,
-    create_window_event_reader: &mut ManualEventReader<CreateWindow>,
-) {
-    // TODO: It's probably worng to be using the world directly here instead of the world-cell
-    // So figure out what should be the correct approach
-    let world_cell = world.cell();
-    let mut winit_windows = world_cell.non_send_resource_mut::<WinitWindows>();
-
-    // Query windows from world
-    // let mut windows_query = world.query_filtered::<Entity, With<Window>>();
-    // let mut windows: Vec<Entity> = windows_query.iter(world).collect();
-
-    let create_window_events = world_cell.resource::<Events<CreateWindow>>();
-    let mut window_created_events = world_cell.resource_mut::<Events<WindowCreated>>();
-
-    for create_window_event in create_window_event_reader.iter(&create_window_events) {
-        let winit_windows = winit_windows.create_window(
-            event_loop,
-            create_window_event.entity,
-            &create_window_event.descriptor,
-        );
-
-        // TODO: Spawn all components required on the window-entity
-
-        window_created_events.send(WindowCreated {
-            entity: create_window_event.entity,
-        });
-
-        #[cfg(target_arch = "wasm32")]
-        {
-            let channel = world_cell.resource_mut::<web_resize::CanvasParentResizeEventChannel>();
-            if create_window_event.descriptor.fit_canvas_to_parent {
-                let selector = if let Some(selector) = &create_window_event.descriptor.canvas {
-                    selector
-                } else {
-                    web_resize::WINIT_CANVAS_SELECTOR
-                };
-                channel.listen_to_selector(create_window_event.entity, selector);
-            }
-        }
     }
 }
