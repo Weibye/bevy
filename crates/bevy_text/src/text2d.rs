@@ -4,6 +4,7 @@ use bevy_ecs::{
     component::Component,
     entity::Entity,
     event::EventReader,
+    prelude::With,
     query::Changed,
     reflect::ReflectComponent,
     system::{Local, Query, Res, ResMut},
@@ -19,7 +20,7 @@ use bevy_render::{
 use bevy_sprite::{Anchor, ExtractedSprite, ExtractedSprites, TextureAtlas};
 use bevy_transform::prelude::{GlobalTransform, Transform};
 use bevy_utils::HashSet;
-use bevy_window::{WindowId, WindowScaleFactorChanged, Windows};
+use bevy_window::{PrimaryWindow, Window, WindowResolution, WindowScaleFactorChanged};
 
 use crate::{
     DefaultTextPipeline, Font, FontAtlasSet, HorizontalAlign, Text, TextError, VerticalAlign,
@@ -67,21 +68,19 @@ pub struct Text2dBundle {
 }
 
 pub fn extract_text2d_sprite(
-    mut extracted_sprites: ResMut<ExtractedSprites>,
-    texture_atlases: Extract<Res<Assets<TextureAtlas>>>,
-    text_pipeline: Extract<Res<DefaultTextPipeline>>,
-    windows: Extract<Res<Windows>>,
-    text2d_query: Extract<
-        Query<(
-            Entity,
-            &ComputedVisibility,
-            &Text,
-            &GlobalTransform,
-            &Text2dSize,
-        )>,
-    >,
+    mut render_world: ResMut<RenderWorld>,
+    texture_atlases: Res<Assets<TextureAtlas>>,
+    text_pipeline: Res<DefaultTextPipeline>,
+    primary_window: Res<PrimaryWindow>,
+    windows: Query<&WindowResolution, With<Window>>,
+    text2d_query: Query<(Entity, &Visibility, &Text, &GlobalTransform, &Text2dSize)>,
 ) {
-    let scale_factor = windows.scale_factor(WindowId::primary()) as f32;
+    let mut extracted_sprites = render_world.resource_mut::<ExtractedSprites>();
+
+    let resolution = windows
+        .get(primary_window.window.expect("Primary window should exist"))
+        .expect("Primary windows should have a valid WindowResolution component");
+    let scale_factor = resolution.scale_factor() as f32;
 
     for (entity, computed_visibility, text, text_transform, calculated_size) in text2d_query.iter()
     {
@@ -151,7 +150,8 @@ pub fn update_text2d_layout(
     mut queue: Local<HashSet<Entity>>,
     mut textures: ResMut<Assets<Image>>,
     fonts: Res<Assets<Font>>,
-    windows: Res<Windows>,
+    primary_window: Res<PrimaryWindow>,
+    windows: Query<&WindowResolution, With<Window>>,
     mut scale_factor_changed: EventReader<WindowScaleFactorChanged>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
     mut font_atlas_set_storage: ResMut<Assets<FontAtlasSet>>,
@@ -166,7 +166,11 @@ pub fn update_text2d_layout(
 ) {
     // We need to consume the entire iterator, hence `last`
     let factor_changed = scale_factor_changed.iter().last().is_some();
-    let scale_factor = windows.scale_factor(WindowId::primary());
+
+    let resolution = windows
+        .get(primary_window.window.expect("Primary window should exist"))
+        .expect("Primary windows should have a valid WindowResolution component");
+    let scale_factor = resolution.scale_factor();
 
     for (entity, text_changed, text, maybe_bounds, mut calculated_size) in &mut text_query {
         if factor_changed || text_changed || queue.remove(&entity) {
