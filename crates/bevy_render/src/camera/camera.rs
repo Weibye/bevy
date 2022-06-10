@@ -22,7 +22,7 @@ use bevy_math::{Mat4, UVec2, Vec2, Vec3};
 use bevy_reflect::prelude::*;
 use bevy_reflect::FromReflect;
 use bevy_transform::components::GlobalTransform;
-use bevy_utils::HashSet;
+use bevy_utils::{default, HashSet};
 use bevy_window::{Window, WindowCreated, WindowResized, WindowResolution};
 use serde::{Deserialize, Serialize};
 use std::{borrow::Cow, ops::Range};
@@ -73,6 +73,7 @@ pub struct ComputedCameraValues {
     target_info: Option<RenderTargetInfo>,
 }
 
+// TODO: Need to appease Reflect + default
 #[derive(Component, Debug, Reflect, Clone)]
 #[reflect(Component)]
 pub struct Camera {
@@ -93,48 +94,29 @@ pub struct Camera {
     pub target: RenderTarget,
 }
 
-impl Default for Camera {
-    fn default() -> Self {
-        Self {
-            is_active: true,
-            priority: 0,
-            viewport: None,
-            computed: Default::default(),
-            target: Default::default(), // TODO: Fix default of camera
-            depth_calculation: Default::default(),
-        }
-    }
-}
+// impl Default for Camera {
+//     fn default() -> Self {
+//         Self {
+//             is_active: true,
+//             priority: 0,
+//             viewport: None,
+//             computed: Default::default(),
+//             target: Default::default(), // TODO: Fix default of camera
+//             depth_calculation: Default::default(),
+//         }
+//     }
+// }
 
 impl Camera {
-    /// Converts a physical size in this `Camera` to a logical size.
-    #[inline]
-    pub fn to_logical(&self, physical_size: UVec2) -> Option<Vec2> {
-        let scale = self.computed.target_info.as_ref()?.scale_factor;
-        Some((physical_size.as_dvec2() / scale).as_vec2())
-    }
-
-    /// The rendered physical bounds (minimum, maximum) of the camera. If the `viewport` field is
-    /// set to [`Some`], this will be the rect of that custom viewport. Otherwise it will default to
-    /// the full physical rect of the current [`RenderTarget`].
-    #[inline]
-    pub fn physical_viewport_rect(&self) -> Option<(UVec2, UVec2)> {
-        let min = self
-            .viewport
-            .as_ref()
-            .map(|v| v.physical_position)
-            .unwrap_or(UVec2::ZERO);
-        let max = min + self.physical_viewport_size()?;
-        Some((min, max))
-    }
-
-    /// The rendered logical bounds (minimum, maximum) of the camera. If the `viewport` field is set
-    /// to [`Some`], this will be the rect of that custom viewport. Otherwise it will default to the
-    /// full logical rect of the current [`RenderTarget`].
-    #[inline]
-    pub fn logical_viewport_rect(&self) -> Option<(Vec2, Vec2)> {
-        let (min, max) = self.physical_viewport_rect()?;
-        Some((self.to_logical(min)?, self.to_logical(max)?))
+    pub fn from_render_target(target: RenderTarget) -> Self {
+        Self {
+            viewport: None,
+            priority: 0,
+            is_active: true,
+            depth_calculation: Default::default(),
+            computed: Default::default(),
+            target,
+        }
     }
 
     /// The logical size of this camera's viewport. If the `viewport` field is set to [`Some`], this
@@ -253,17 +235,23 @@ pub enum RenderTarget {
     Image(Handle<Image>),
 }
 
-impl Default for RenderTarget {
-    // TODO: Default window ID no longer makes sense, so this can no longer impl Default
-    fn default() -> Self {
-        // TODO:
-        // There is no longer 1 fixed id that corresponds to a valid window
-        // This should probably be the Entity of the PrimaryWindow
-        // but that is generated in runtime
-        // so not quite sure how to approach this
-        Self::Window(Default::default())
+impl RenderTarget {
+    pub fn new(window: Entity) -> Self {
+        Self::Window(window)
     }
 }
+
+// impl Default for RenderTarget {
+//     // TODO: Default window ID no longer makes sense, so this can no longer impl Default
+//     fn default() -> Self {
+//         // TODO:
+//         // There is no longer 1 fixed id that corresponds to a valid window
+//         // This should probably be the Entity of the PrimaryWindow
+//         // but that is generated in runtime
+//         // so not quite sure how to approach this
+//         Self::Window(Default::default())
+//     }
+// }
 
 impl RenderTarget {
     pub fn get_texture_view<'a>(
