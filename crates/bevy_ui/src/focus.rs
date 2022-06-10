@@ -1,7 +1,7 @@
 use crate::{entity::UiCameraConfig, CalculatedClip, Node};
 use bevy_ecs::{
     entity::Entity,
-    prelude::Component,
+    prelude::{Component, With},
     reflect::ReflectComponent,
     system::{Local, Query, Res},
 };
@@ -12,7 +12,7 @@ use bevy_render::camera::{Camera, RenderTarget};
 use bevy_render::view::ComputedVisibility;
 use bevy_transform::components::GlobalTransform;
 use bevy_utils::FloatOrd;
-use bevy_window::Windows;
+use bevy_window::{PrimaryWindow, Window, WindowCursorPosition};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
@@ -67,8 +67,8 @@ pub struct State {
 /// Entities with a hidden [`ComputedVisibility`] are always treated as released.
 pub fn ui_focus_system(
     mut state: Local<State>,
-    camera: Query<(&Camera, Option<&UiCameraConfig>)>,
-    windows: Res<Windows>,
+    primary_window: Res<PrimaryWindow>,
+    cursor_positions: Query<&WindowCursorPosition, With<Window>>,
     mouse_button_input: Res<Input<MouseButton>>,
     touches_input: Res<Touches>,
     mut node_query: Query<(
@@ -81,6 +81,12 @@ pub fn ui_focus_system(
         Option<&ComputedVisibility>,
     )>,
 ) {
+    let primary_window_id = primary_window.window.expect("Primary window should exist");
+    // Cursor position of primary window
+    let cursor_position = *cursor_positions
+        .get(primary_window_id)
+        .expect("Primary window should have a valid WindowCursorPosition component");
+
     // reset entities that were both clicked and released in the last frame
     for entity in state.entities_to_reset.drain(..) {
         if let Ok(mut interaction) = node_query.get_component_mut::<Interaction>(entity) {

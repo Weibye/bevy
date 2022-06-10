@@ -12,14 +12,14 @@ use bevy_log::warn;
 use bevy_math::Vec2;
 use bevy_transform::components::Transform;
 use bevy_utils::HashMap;
-use bevy_window::{Window, WindowId, WindowScaleFactorChanged, Windows};
+use bevy_window::{PrimaryWindow, Window, WindowResolution, WindowScaleFactorChanged};
 use std::fmt;
 use taffy::{number::Number, Taffy};
 
 #[derive(Resource)]
 pub struct FlexSurface {
     entity_to_taffy: HashMap<Entity, taffy::node::Node>,
-    window_nodes: HashMap<WindowId, taffy::node::Node>,
+    window_nodes: HashMap<Entity, taffy::node::Node>,
     taffy: Taffy,
 }
 
@@ -32,7 +32,6 @@ unsafe impl Sync for FlexSurface {}
 fn _assert_send_sync_flex_surface_impl_safe() {
     fn _assert_send_sync<T: Send + Sync>() {}
     _assert_send_sync::<HashMap<Entity, taffy::node::Node>>();
-    _assert_send_sync::<HashMap<WindowId, taffy::node::Node>>();
     // FIXME https://github.com/DioxusLabs/taffy/issues/146
     // _assert_send_sync::<Taffy>();
 }
@@ -130,11 +129,11 @@ without UI components as a child of an entity with UI components, results may be
             .unwrap();
     }
 
-    pub fn update_window(&mut self, window: &Window) {
-        let taffy = &mut self.taffy;
-        let node = self.window_nodes.entry(window.id()).or_insert_with(|| {
-            taffy
-                .new_node(taffy::style::Style::default(), &Vec::new())
+    pub fn update_window(&mut self, window_id: Entity, window_resolution: &WindowResolution) {
+        let stretch = &mut self.stretch;
+        let node = self.window_nodes.entry(window_id).or_insert_with(|| {
+            stretch
+                .new_node(stretch::style::Style::default(), Vec::new())
                 .unwrap()
         });
 
@@ -143,8 +142,12 @@ without UI components as a child of an entity with UI components, results may be
                 *node,
                 taffy::style::Style {
                     size: taffy::geometry::Size {
-                        width: taffy::style::Dimension::Points(window.physical_width() as f32),
-                        height: taffy::style::Dimension::Points(window.physical_height() as f32),
+                        width: taffy::style::Dimension::Points(
+                            window_resolution.physical_width() as f32
+                        ),
+                        height: taffy::style::Dimension::Points(
+                            window_resolution.physical_height() as f32,
+                        ),
                     },
                     ..Default::default()
                 },
@@ -154,7 +157,7 @@ without UI components as a child of an entity with UI components, results may be
 
     pub fn set_window_children(
         &mut self,
-        window_id: WindowId,
+        window_id: Entity,
         children: impl Iterator<Item = Entity>,
     ) {
         let taffy_node = self.window_nodes.get(&window_id).unwrap();
@@ -195,7 +198,8 @@ pub enum FlexError {
 
 #[allow(clippy::too_many_arguments)]
 pub fn flex_node_system(
-    windows: Res<Windows>,
+    primary_window: Res<PrimaryWindow>,
+    windows: Query<(Entity, &WindowResolution), With<Window>>,
     mut scale_factor_events: EventReader<WindowScaleFactorChanged>,
     mut flex_surface: ResMut<FlexSurface>,
     root_node_query: Query<Entity, (With<Node>, Without<Parent>)>,
@@ -209,12 +213,15 @@ pub fn flex_node_system(
     mut node_transform_query: Query<(Entity, &mut Node, &mut Transform, Option<&Parent>)>,
 ) {
     // update window root nodes
-    for window in windows.iter() {
-        flex_surface.update_window(window);
+    for (window_id, window_resolution) in windows.iter() {
+        flex_surface.update_window(window_id, window_resolution);
     }
 
     // assume one window for time being...
-    let logical_to_physical_factor = windows.scale_factor(WindowId::primary());
+    let (_, primary_resolution) = windows
+        .get(primary_window.window.expect("Primary window should exist"))
+        .expect("Primary windows should have a valid WindowResolution component");
+    let logical_to_physical_factor = primary_resolution.scale_factor();
 
     if scale_factor_events.iter().next_back().is_some() {
         update_changed(
@@ -249,8 +256,8 @@ pub fn flex_node_system(
     // TODO: handle removed nodes
 
     // update window children (for now assuming all Nodes live in the primary window)
-    if let Some(primary_window) = windows.get_primary() {
-        flex_surface.set_window_children(primary_window.id(), root_node_query.iter());
+    if let Some(primary_window_id) = primary_window.window {
+        flex_surface.set_window_children(primary_window_id, root_node_query.iter());
     }
 
     // update children
