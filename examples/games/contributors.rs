@@ -1,6 +1,10 @@
 //! This example displays each contributor to the bevy source code as a bouncing bevy-ball.
 
-use bevy::{prelude::*, utils::HashSet};
+use bevy::{
+    prelude::*,
+    utils::HashSet,
+    window::{PrimaryWindow, WindowResolution},
+};
 use rand::{prelude::SliceRandom, Rng};
 use std::{
     env::VarError,
@@ -245,20 +249,23 @@ fn velocity_system(time: Res<Time>, mut velocity_query: Query<&mut Velocity>) {
 /// velocity. On collision with the ground it applies an upwards
 /// force.
 fn collision_system(
-    windows: Res<Windows>,
+    primary_window: Res<PrimaryWindow>,
+    window_resolutions: Query<&WindowResolution, With<Window>>,
     mut query: Query<(&mut Velocity, &mut Transform), With<Contributor>>,
 ) {
-    let window = if let Some(window) = windows.get_primary() {
-        window
-    } else {
-        return;
-    };
+    let window_resolution = window_resolutions
+        .get(
+            primary_window
+                .window
+                .expect("Should have a valid PrimaryWindow"),
+        )
+        .expect("PrimaryWindow should have a valid Resolution component");
 
-    let ceiling = window.height() / 2.;
-    let ground = -(window.height() / 2.);
+    let ceiling = window_resolution.height() / 2.;
+    let ground = -(window_resolution.height() / 2.);
 
-    let wall_left = -(window.width() / 2.);
-    let wall_right = window.width() / 2.;
+    let wall_left = -(window_resolution.width() / 2.);
+    let wall_right = window_resolution.width() / 2.;
 
     // The maximum height the birbs should try to reach is one birb below the top of the window.
     let max_bounce_height = window.height() - SPRITE_SIZE * 2.0;
