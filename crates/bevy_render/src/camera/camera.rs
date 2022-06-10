@@ -13,16 +13,17 @@ use bevy_ecs::{
     component::Component,
     entity::Entity,
     event::EventReader,
+    prelude::With,
     query::Added,
     reflect::ReflectComponent,
-    system::{Commands, ParamSet, Query, Res}, prelude::With,
+    system::{Commands, ParamSet, Query, Res},
 };
 use bevy_math::{Mat4, UVec2, Vec2, Vec3};
 use bevy_reflect::prelude::*;
 use bevy_reflect::FromReflect;
 use bevy_transform::components::GlobalTransform;
 use bevy_utils::HashSet;
-use bevy_window::{WindowCreated, WindowResized, Window, WindowResolution};
+use bevy_window::{Window, WindowCreated, WindowResized, WindowResolution};
 use serde::{Deserialize, Serialize};
 use std::{borrow::Cow, ops::Range};
 use wgpu::Extent3d;
@@ -255,7 +256,7 @@ pub enum RenderTarget {
 impl Default for RenderTarget {
     // TODO: Default window ID no longer makes sense, so this can no longer impl Default
     fn default() -> Self {
-        // TODO: 
+        // TODO:
         // There is no longer 1 fixed id that corresponds to a valid window
         // This should probably be the Entity of the PrimaryWindow
         // but that is generated in runtime
@@ -289,14 +290,16 @@ impl RenderTarget {
             RenderTarget::Window(window_id) => {
                 if let Ok((entity, resolution)) = windows.get(*window_id) {
                     RenderTargetInfo {
-                        physical_size: UVec2::new(resolution.physical_width(), resolution.physical_height()),
+                        physical_size: UVec2::new(
+                            resolution.physical_width(),
+                            resolution.physical_height(),
+                        ),
                         scale_factor: resolution.scale_factor(),
                     }
                 } else {
                     // TODO: Helpful panic comment
                     panic!("Render target does not point to a valid window");
                 }
-                
             }
             RenderTarget::Image(image_handle) => {
                 let image = images.get(image_handle)?;
