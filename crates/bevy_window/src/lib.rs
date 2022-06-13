@@ -25,8 +25,8 @@ use bevy_app::prelude::*;
 use bevy_ecs::{
     entity::Entity,
     event::Events,
-    schedule::{ParallelSystemDescriptorCoercion, SystemLabel},
-    system::Resource,
+    schedule::{ParallelSystemDescriptorCoercion, SystemLabel, SystemStage},
+    system::{Commands, ResMut, Resource, SystemState},
 };
 
 /// The configuration information for the [`WindowPlugin`].
@@ -109,11 +109,18 @@ impl Plugin for WindowPlugin {
             .add_event::<SetPositionCommand>()
             .add_event::<SetResizeConstraintsCommand>()
             .add_event::<CloseWindowCommand>()
-            .insert_resource(PrimaryWindow::default());
+            // Resources
+            .init_resource::<PrimaryWindow>();
+
+        bevy_utils::tracing::info!("Hello");
 
         if self.add_primary_window {
             // TODO: Creating window should be done through commands as entities instead of old way
             app.add_startup_system(create_primary_window);
+
+            // let mut system_state: SystemState<(Commands, ResMut<PrimaryWindow>)> = SystemState::new(&mut app.world);
+            // let (mut commands, mut primary_window) = system_state.get_mut(&mut app.world);
+            // create_primary_window(commands, primary_window);
 
             // let window_descriptor = app
             //     .world
