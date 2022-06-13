@@ -125,7 +125,6 @@ pub struct RenderApp;
 impl Plugin for RenderPlugin {
     /// Initializes the renderer, sets up the [`RenderStage`](RenderStage) and creates the rendering sub-app.
     fn build(&self, app: &mut App) {
-
         app.add_asset::<Shader>()
             .add_debug_asset::<Shader>()
             .init_asset_loader::<ShaderLoader>()
@@ -140,7 +139,7 @@ impl Plugin for RenderPlugin {
         let (
             window_query,
             primary_window,
-            options // This was .clone().unwrap_or_default(). Will this work the same?
+            options, // This was .clone().unwrap_or_default(). Will this work the same?
         ) = system_state.get(&mut app.world);
 
         // let options = app
@@ -148,8 +147,6 @@ impl Plugin for RenderPlugin {
         //     .get_resource::<settings::WgpuSettings>()
         //     .cloned()
         //     .unwrap_or_default();
-
-
 
         if let Some(backends) = options.backends {
             let instance = wgpu::Instance::new(backends);
