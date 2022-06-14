@@ -22,7 +22,7 @@ use bevy_math::{Mat4, UVec2, Vec2, Vec3};
 use bevy_reflect::prelude::*;
 use bevy_reflect::FromReflect;
 use bevy_transform::components::GlobalTransform;
-use bevy_utils::{default, HashSet};
+use bevy_utils::HashSet;
 use bevy_window::{Window, WindowCreated, WindowResized, WindowResolution};
 use serde::{Deserialize, Serialize};
 use std::{borrow::Cow, ops::Range};
@@ -250,7 +250,7 @@ impl RenderTarget {
 
     pub fn get_render_target_info(
         &self,
-        windows: &Query<(&WindowResolution), With<Window>>, // TODO: Maybe this could just be a Vec?
+        windows: &Query<&WindowResolution, With<Window>>, // TODO: Maybe this could just be a Vec?
         images: &Assets<Image>,
     ) -> Option<RenderTargetInfo> {
         Some(match self {
