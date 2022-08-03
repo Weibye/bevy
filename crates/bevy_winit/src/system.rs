@@ -1,21 +1,24 @@
 use bevy_ecs::{
+    component::TableStorage,
     entity::Entity,
     event::{EventReader, EventWriter},
-    prelude::{Added, With, World, Component},
-    system::{Commands, NonSendMut, Query, RemovedComponents, InsertBundle, Command, Insert, SystemState}, component::TableStorage,
+    prelude::{Added, Component, With, World},
+    system::{
+        Command, Commands, Insert, InsertBundle, NonSendMut, Query, RemovedComponents, SystemState,
+    },
 };
 use bevy_math::IVec2;
 use bevy_utils::tracing::{error, info};
 use bevy_window::{
-    CloseWindowCommand, CursorIcon, SetCursorIconCommand, SetCursorLockModeCommand,
-    SetCursorPositionCommand, SetCursorVisibilityCommand, SetDecorationsCommand,
-    SetMaximizedCommand, SetMinimizedCommand, SetPositionCommand, SetPresentModeCommand,
-    SetResizableCommand, SetResizeConstraintsCommand, SetResolutionCommand,
+    CloseWindowCommand, CreateWindowCommand, CursorIcon, SetCursorIconCommand,
+    SetCursorLockModeCommand, SetCursorPositionCommand, SetCursorVisibilityCommand,
+    SetDecorationsCommand, SetMaximizedCommand, SetMinimizedCommand, SetPositionCommand,
+    SetPresentModeCommand, SetResizableCommand, SetResizeConstraintsCommand, SetResolutionCommand,
     SetScaleFactorOverrideCommand, SetTitleCommand, SetWindowModeCommand, Window, WindowBundle,
     WindowCanvas, WindowClosed, WindowCreated, WindowCurrentlyFocused, WindowCursor,
     WindowCursorPosition, WindowDecorated, WindowHandle, WindowMaximized, WindowMinimized,
     WindowModeComponent, WindowPosition, WindowPresentation, WindowResizable, WindowResolution,
-    WindowScaleFactorChanged, WindowTitle, WindowTransparent, CreateWindowCommand,
+    WindowScaleFactorChanged, WindowTitle, WindowTransparent,
 };
 use raw_window_handle::HasRawWindowHandle;
 use winit::{
@@ -45,10 +48,15 @@ pub(crate) fn create_window_system(
         let mut entity_commands = commands.entity(event.entity);
 
         // Prepare data
-        let position = winit_window
+        let position = match winit_window
             .outer_position()
             .ok()
-            .map(|position| IVec2::new(position.x, position.y));
+            .map(|position| IVec2::new(position.x, position.y))
+        {
+            Some(position) => WindowPosition::At(position),
+            None => WindowPosition::Automatic,
+        };
+
         let inner_size = winit_window.inner_size();
 
         entity_commands.insert_bundle(WindowBundle {
@@ -56,7 +64,7 @@ pub(crate) fn create_window_system(
             handle: WindowHandle::new(winit_window.raw_window_handle()),
             presentation: WindowPresentation::new(event.descriptor.present_mode),
             mode: WindowModeComponent::new(event.descriptor.mode),
-            position: WindowPosition::new(position),
+            position,
             resolution: WindowResolution::new(
                 event.descriptor.width,
                 event.descriptor.height,

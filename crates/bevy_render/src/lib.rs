@@ -53,7 +53,10 @@ use bevy_asset::{AddAsset, AssetServer};
 use bevy_ecs::{prelude::*, system::SystemState};
 use bevy_utils::tracing::debug;
 use core::panic;
-use std::ops::{Deref, DerefMut};
+use std::{
+    any::TypeId,
+    ops::{Deref, DerefMut},
+};
 
 /// Contains the default Bevy rendering backend based on wgpu.
 #[derive(Default)]

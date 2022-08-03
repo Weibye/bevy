@@ -10,9 +10,9 @@ use core::panic;
 use bevy_ecs::system::{Command, Insert, InsertBundle, SystemParam, SystemState};
 use raw_window_handle::HasRawWindowHandle;
 use system::{
-    create_window_direct, create_window_system, destroy_windows, update_cursor_icon,
-    update_cursor_lock_mode, update_cursor_position, update_cursor_visibility, update_decorations,
-    update_maximized, update_minimized, update_position, update_present_mode, update_resizable,
+    create_window_system, destroy_windows, update_cursor_icon, update_cursor_lock_mode,
+    update_cursor_position, update_cursor_visibility, update_decorations, update_maximized,
+    update_minimized, update_position, update_present_mode, update_resizable,
     update_resize_contraints, update_resolution, update_scale_factor_override, update_title,
     update_window_mode, window_destroyed,
 };
@@ -35,8 +35,8 @@ use bevy_utils::{
     Instant,
 };
 use bevy_window::{
-    CreateWindowCommand, CreateWindowCommand, CursorEntered, CursorIcon, CursorLeft, CursorMoved,
-    FileDragAndDrop, ModifiesWindows, PrimaryWindow, ReceivedCharacter, RequestRedraw, Window,
+    CreateWindowCommand, CursorEntered, CursorIcon, CursorLeft, CursorMoved, FileDragAndDrop,
+    ModifiesWindows, PrimaryWindow, ReceivedCharacter, RequestRedraw, Window,
     WindowBackendScaleFactorChanged, WindowBundle, WindowCanvas, WindowCloseRequested,
     WindowCreated, WindowCurrentlyFocused, WindowCursor, WindowCursorPosition, WindowDecorated,
     WindowFocused, WindowHandle, WindowModeComponent, WindowMoved, WindowPosition,

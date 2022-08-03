@@ -114,7 +114,13 @@ impl Plugin for WindowPlugin {
 
         bevy_utils::tracing::info!("Hello");
 
-        if self.add_primary_window {
+        let settings = app
+            .world
+            .get_resource::<WindowSettings>()
+            .cloned()
+            .unwrap_or_default();
+
+        if settings.add_primary_window {
             // TODO: Creating primary window should ideally be done through commands instead of the old way
             // however, commands aren't executed until the end of the "build-stage"
             // which means the primary-window does not exist until just before startup-systems starts running (?)
@@ -158,7 +164,7 @@ impl Plugin for WindowPlugin {
             // });
         }
 
-        match self.exit_condition {
+        match settings.exit_condition {
             ExitCondition::OnPrimaryClosed => {
                 app.add_system(exit_on_primary_closed);
             }
@@ -168,7 +174,7 @@ impl Plugin for WindowPlugin {
             ExitCondition::DontExit => {}
         }
 
-        if self.close_when_requested {
+        if settings.close_when_requested {
             app.add_system(close_when_requested);
         }
     }
@@ -178,6 +184,7 @@ impl Plugin for WindowPlugin {
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemLabel)]
 pub struct ModifiesWindows;
 
+#[derive(Clone)]
 pub enum ExitCondition {
     /// Close application when the primary window is closed
     OnPrimaryClosed,

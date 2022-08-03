@@ -71,19 +71,20 @@ impl DerefMut for ExtractedWindows {
 }
 
 fn extract_windows(
-    mut render_world: ResMut<RenderWorld>,
-    mut closed: EventReader<WindowClosed>,
-    windows: Query<
-        (
-            Entity,
-            &WindowResolution,
-            &WindowHandle,
-            &WindowPresentation,
-        ),
-        With<Window>,
+    mut extracted_windows: ResMut<ExtractedWindows>,
+    mut closed: Extract<EventReader<WindowClosed>>,
+    windows: Extract<
+        Query<
+            (
+                Entity,
+                &WindowResolution,
+                &WindowHandle,
+                &WindowPresentation,
+            ),
+            With<Window>,
+        >,
     >,
 ) {
-    let mut extracted_windows = render_world.get_resource_mut::<ExtractedWindows>().unwrap();
     for (entity, resolution, handle, presentation) in windows.iter() {
         let (new_width, new_height) = (
             resolution.physical_width().max(1),
