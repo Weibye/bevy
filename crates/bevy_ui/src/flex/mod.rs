@@ -130,12 +130,11 @@ without UI components as a child of an entity with UI components, results may be
     }
 
     pub fn update_window(&mut self, window_id: Entity, window_resolution: &WindowResolution) {
-        let stretch = &mut self.stretch;
-        let node = self.window_nodes.entry(window_id).or_insert_with(|| {
-            stretch
-                .new_node(stretch::style::Style::default(), Vec::new())
-                .unwrap()
-        });
+        let taffy = &mut self.taffy;
+        let node = self
+            .window_nodes
+            .entry(window_id)
+            .or_insert_with(|| taffy.new_node(taffy::style::Style::default(), &[]).unwrap());
 
         taffy
             .set_style(

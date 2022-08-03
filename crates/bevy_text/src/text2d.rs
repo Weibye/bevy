@@ -68,15 +68,21 @@ pub struct Text2dBundle {
 }
 
 pub fn extract_text2d_sprite(
-    mut render_world: ResMut<RenderWorld>,
-    texture_atlases: Res<Assets<TextureAtlas>>,
-    text_pipeline: Res<DefaultTextPipeline>,
-    primary_window: Res<PrimaryWindow>,
-    windows: Query<&WindowResolution, With<Window>>,
-    text2d_query: Query<(Entity, &Visibility, &Text, &GlobalTransform, &Text2dSize)>,
+    mut extracted_sprites: ResMut<ExtractedSprites>,
+    texture_atlases: Extract<Res<Assets<TextureAtlas>>>,
+    text_pipeline: Extract<Res<DefaultTextPipeline>>,
+    primary_window: Extract<Res<PrimaryWindow>>,
+    windows: Extract<Query<&WindowResolution, With<Window>>>,
+    text2d_query: Extract<
+        Query<(
+            Entity,
+            &ComputedVisibility,
+            &Text,
+            &GlobalTransform,
+            &Text2dSize,
+        )>,
+    >,
 ) {
-    let mut extracted_sprites = render_world.resource_mut::<ExtractedSprites>();
-
     let resolution = windows
         .get(primary_window.window.expect("Primary window should exist"))
         .expect("Primary windows should have a valid WindowResolution component");

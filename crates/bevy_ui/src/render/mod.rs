@@ -271,29 +271,29 @@ pub fn extract_default_ui_camera_view<T: Component>(
 }
 
 pub fn extract_text_uinodes(
-    mut render_world: ResMut<RenderWorld>,
-    texture_atlases: Res<Assets<TextureAtlas>>,
-    text_pipeline: Res<DefaultTextPipeline>,
-    primary_window: Res<PrimaryWindow>,
-    windows: Query<&WindowResolution, With<Window>>,
-    uinode_query: Query<(
-        Entity,
-        &Node,
-        &GlobalTransform,
-        &Text,
-        &Visibility,
-        Option<&CalculatedClip>,
-    )>,
+    mut extracted_uinodes: ResMut<ExtractedUiNodes>,
+    texture_atlases: Extract<Res<Assets<TextureAtlas>>>,
+    text_pipeline: Extract<Res<DefaultTextPipeline>>,
+    primary_window: Extract<Res<PrimaryWindow>>,
+    windows: Extract<Query<&WindowResolution, With<Window>>>,
+    uinode_query: Extract<
+        Query<(
+            Entity,
+            &Node,
+            &GlobalTransform,
+            &Text,
+            &ComputedVisibility,
+            Option<&CalculatedClip>,
+        )>,
+    >,
 ) {
-    let mut extracted_uinodes = render_world.resource_mut::<ExtractedUiNodes>();
-
     let resolution = windows
         .get(primary_window.window.expect("Primary window should exist"))
         .expect("Primary windows should have a valid WindowResolution component");
     let scale_factor = resolution.scale_factor() as f32;
 
-    for (entity, uinode, transform, text, visibility, clip) in uinode_query.iter() {
-        if !visibility.is_visible {
+    for (entity, uinode, global_transform, text, visibility, clip) in uinode_query.iter() {
+        if !visibility.is_visible() {
             continue;
         }
         // Skip if size is set to zero (e.g. when a parent is set to `Display::None`)

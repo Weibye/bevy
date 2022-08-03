@@ -115,21 +115,6 @@ pub fn ui_focus_system(
     let is_ui_disabled =
         |camera_ui| matches!(camera_ui, Some(&UiCameraConfig { show_ui: false, .. }));
 
-    let cursor_position = camera
-        .iter()
-        .filter(|(_, camera_ui)| !is_ui_disabled(*camera_ui))
-        .filter_map(|(camera, _)| {
-            if let RenderTarget::Window(window_id) = camera.target {
-                Some(window_id)
-            } else {
-                None
-            }
-        })
-        .filter_map(|window_id| windows.get(window_id))
-        .filter(|window| window.is_focused())
-        .find_map(|window| window.cursor_position())
-        .or_else(|| touches_input.first_pressed_position());
-
     let mut moused_over_z_sorted_nodes = node_query
         .iter_mut()
         .filter_map(

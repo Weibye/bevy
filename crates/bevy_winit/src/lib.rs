@@ -90,28 +90,36 @@ impl Plugin for WinitPlugin {
             NonSendMut<WinitWindows>,
             NonSendMut<EventLoop<()>>,
         )> = SystemState::new(&mut app.world);
-        let (
-            mut commands,
-            mut create_window_commands,
-            mut window_created_events,
-            mut winit_windows,
-            mut event_loop,
-        ) = system_state.get_mut(&mut app.world);
 
-        // Here we need to create a winit-window and give it a WindowHandle which the renderer can use.
-        // It needs to be spawned before the start of the startup-stage, so we cannot use a regular system.
-        // Instead we need to create the window and spawn it using direct world access
-        create_window_system(
-            commands,
-            event_loop,
-            create_window_commands,
-            window_created_events,
-            winit_windows,
-        );
+        {
+            let (
+                mut commands,
+                mut create_window_commands,
+                mut window_created_events,
+                mut winit_windows,
+                mut event_loop,
+            ) = system_state.get_mut(&mut app.world);
+
+            // Here we need to create a winit-window and give it a WindowHandle which the renderer can use.
+            // It needs to be spawned before the start of the startup-stage, so we cannot use a regular system.
+            // Instead we need to create the window and spawn it using direct world access
+            create_window_system(
+                commands,
+                event_loop,
+                create_window_commands,
+                window_created_events,
+                winit_windows,
+            );
+        }
 
         system_state.apply(&mut app.world);
 
-        app.insert_non_send_resource(event_loop);
+        /*
+               {
+                   let (_, _, _, _, mut event_loop) = system_state.get_mut(&mut app.world);
+                   app.insert_non_send_resource(event_loop);
+               }
+        */
     }
 }
 
