@@ -46,7 +46,7 @@ use bevy_window::{
 
 use winit::{
     event::{self, DeviceEvent, Event, StartCause, WindowEvent},
-    event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget},
+    event_loop::{ControlFlow, EventLoop, EventLoopProxy, EventLoopWindowTarget},
 };
 
 #[derive(Default)]
@@ -54,6 +54,9 @@ pub struct WinitPlugin;
 
 impl Plugin for WinitPlugin {
     fn build(&self, app: &mut App) {
+        let event_loop = EventLoop::new();
+        app.insert_non_send_resource(event_loop);
+
         app.init_non_send_resource::<WinitWindows>()
             .init_resource::<WinitSettings>()
             .set_runner(winit_runner)
@@ -105,7 +108,7 @@ impl Plugin for WinitPlugin {
             // Instead we need to create the window and spawn it using direct world access
             create_window_system(
                 commands,
-                event_loop,
+                &**event_loop,
                 create_window_commands,
                 window_created_events,
                 winit_windows,
@@ -113,13 +116,6 @@ impl Plugin for WinitPlugin {
         }
 
         system_state.apply(&mut app.world);
-
-        /*
-               {
-                   let (_, _, _, _, mut event_loop) = system_state.get_mut(&mut app.world);
-                   app.insert_non_send_resource(event_loop);
-               }
-        */
     }
 }
 
@@ -617,7 +613,6 @@ pub fn winit_runner_with(mut app: App) {
                     EventReader<CreateWindowCommand>,
                     EventWriter<WindowCreated>,
                     NonSendMut<WinitWindows>,
-                    NonSendMut<EventLoop<()>>,
                     Res<WinitSettings>,
                     Query<Entity, (With<Window>, With<WindowCurrentlyFocused>)>,
                 )> = SystemState::new(&mut app.world);
@@ -626,7 +621,6 @@ pub fn winit_runner_with(mut app: App) {
                     mut create_window_commands,
                     mut window_created_events,
                     mut winit_windows,
-                    mut event_loop,
                     winit_config,
                     window_focused_query,
                 ) = system_state.get_mut(&mut app.world);

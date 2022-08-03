@@ -23,7 +23,7 @@ use bevy_window::{
 use raw_window_handle::HasRawWindowHandle;
 use winit::{
     dpi::{LogicalSize, PhysicalPosition},
-    event_loop::EventLoop,
+    event_loop::{EventLoop, EventLoopWindowTarget},
 };
 
 use crate::{converters, get_best_videomode, get_fitting_videomode, WinitWindows};
@@ -32,7 +32,7 @@ use crate::{converters, get_best_videomode, get_fitting_videomode, WinitWindows}
 /// System responsible for creating new windows whenever the Event<CreateWindow> has been sent
 pub(crate) fn create_window_system(
     mut commands: Commands,
-    mut event_loop: NonSendMut<EventLoop<()>>, //  &EventLoopWindowTarget<()>, // TODO: Not sure how this would work
+    mut event_loop: &EventLoopWindowTarget<()>,
     mut create_window_commands: EventReader<CreateWindowCommand>,
     mut window_created_events: EventWriter<WindowCreated>,
     mut winit_windows: NonSendMut<WinitWindows>,
