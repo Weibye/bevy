@@ -37,7 +37,6 @@ pub(crate) fn create_window_system(
     mut window_created_events: EventWriter<WindowCreated>,
     mut winit_windows: NonSendMut<WinitWindows>,
 ) {
-    println!("entry");
     info!("Creating primary window");
     for event in create_window_commands.iter() {
         info!("Creating window event");

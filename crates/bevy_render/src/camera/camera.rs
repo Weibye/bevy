@@ -23,7 +23,7 @@ use bevy_reflect::prelude::*;
 use bevy_reflect::FromReflect;
 use bevy_transform::components::GlobalTransform;
 use bevy_utils::HashSet;
-use bevy_window::{Window, WindowCreated, WindowResized, WindowResolution};
+use bevy_window::{PrimaryWindow, Window, WindowCreated, WindowResized, WindowResolution};
 use serde::{Deserialize, Serialize};
 use std::{borrow::Cow, ops::Range};
 use wgpu::Extent3d;
@@ -274,12 +274,21 @@ impl RenderTarget {
             RenderTarget::Image(image_handle) => {
                 images.get(image_handle).map(|image| &image.texture_view)
             }
-            RenderTarget::PrimaryWindow => todo!(),
+            RenderTarget::PrimaryWindow => {
+                let window_id = windows
+                    .primary
+                    .expect("expected a primary window to exist if going to retrieve view");
+
+                windows
+                    .get(&window_id)
+                    .and_then(|window| window.swap_chain_texture.as_ref())
+            }
         }
     }
 
     pub fn get_render_target_info(
         &self,
+        primary: &Res<PrimaryWindow>,
         windows: &Query<&WindowResolution, With<Window>>, // TODO: Maybe this could just be a Vec?
         images: &Assets<Image>,
     ) -> Option<RenderTargetInfo> {
@@ -295,7 +304,7 @@ impl RenderTarget {
                     }
                 } else {
                     // TODO: Helpful panic comment
-                    panic!("Render target does not point to a valid window");
+                    panic!("Render target does not point to a valid window (no resolution found)");
                 }
             }
             RenderTarget::Image(image_handle) => {
@@ -306,20 +315,41 @@ impl RenderTarget {
                     scale_factor: 1.0,
                 }
             }
-            RenderTarget::PrimaryWindow => todo!(),
+            RenderTarget::PrimaryWindow => {
+                let window_id = primary
+                    .window
+                    .expect("expected a primary window to exist if going to render to it");
+                if let Ok(resolution) = windows.get(window_id) {
+                    RenderTargetInfo {
+                        physical_size: UVec2::new(
+                            resolution.physical_width(),
+                            resolution.physical_height(),
+                        ),
+                        scale_factor: resolution.scale_factor(),
+                    }
+                } else {
+                    // TODO: Helpful panic comment
+                    panic!("Render target does not point to a valid window (no resolution found)");
+                }
+            }
         })
     }
 
     // Check if this render target is contained in the given changed windows or images.
     fn is_changed(
         &self,
+        primary_window: &PrimaryWindow,
         changed_window_ids: &[Entity],
         changed_image_handles: &HashSet<&Handle<Image>>,
     ) -> bool {
         match self {
             RenderTarget::Window(window_id) => changed_window_ids.contains(window_id),
             RenderTarget::Image(image_handle) => changed_image_handles.contains(&image_handle),
-            RenderTarget::PrimaryWindow => todo!(),
+            RenderTarget::PrimaryWindow => changed_window_ids.contains(
+                &primary_window
+                    .window
+                    .expect("expected primary window to exist"),
+            ),
         }
     }
 }
@@ -338,6 +368,7 @@ pub fn camera_system<T: CameraProjection + Component>(
     mut window_resized_events: EventReader<WindowResized>,
     mut window_created_events: EventReader<WindowCreated>,
     mut image_asset_events: EventReader<AssetEvent<Image>>,
+    primary_window: Res<PrimaryWindow>,
     windows: Query<&WindowResolution, With<Window>>,
     images: Res<Assets<Image>>,
     mut queries: ParamSet<(
@@ -384,11 +415,14 @@ pub fn camera_system<T: CameraProjection + Component>(
     for (entity, mut camera, mut camera_projection) in &mut queries.p0() {
         if camera
             .target
-            .is_changed(&changed_window_ids, &changed_image_handles)
+            .is_changed(&primary_window, &changed_window_ids, &changed_image_handles)
             || added_cameras.contains(&entity)
             || camera_projection.is_changed()
         {
-            camera.computed.target_info = camera.target.get_render_target_info(&windows, &images);
+            camera.computed.target_info =
+                camera
+                    .target
+                    .get_render_target_info(&primary_window, &windows, &images);
             if let Some(size) = camera.logical_viewport_size() {
                 camera_projection.update(size.x, size.y);
                 camera.computed.projection_matrix = camera_projection.get_projection_matrix();

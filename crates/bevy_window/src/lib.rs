@@ -151,6 +151,7 @@ impl Plugin for WindowPlugin {
                 entity: window_id,
                 descriptor: window_descriptor,
             };
+
             // Apply the command directly on the world
             // I wonder if this causes timing issue: this will trigger a CreateWindowCommand event, but will bevy_winit exist in time to listen to the event?
             command.write(&mut app.world);

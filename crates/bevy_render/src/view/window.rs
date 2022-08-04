@@ -8,8 +8,8 @@ use bevy_app::{App, Plugin};
 use bevy_ecs::prelude::*;
 use bevy_utils::{tracing::debug, HashMap, HashSet};
 use bevy_window::{
-    PresentMode, RawWindowHandleWrapper, Window, WindowClosed, WindowHandle, WindowPresentation,
-    WindowResolution,
+    PresentMode, PrimaryWindow, RawWindowHandleWrapper, Window, WindowClosed, WindowHandle,
+    WindowPresentation, WindowResolution,
 };
 use std::ops::{Deref, DerefMut};
 use wgpu::TextureFormat;
@@ -53,6 +53,7 @@ pub struct ExtractedWindow {
 
 #[derive(Default, Resource)]
 pub struct ExtractedWindows {
+    pub primary: Option<Entity>,
     pub windows: HashMap<Entity, ExtractedWindow>,
 }
 
@@ -73,6 +74,7 @@ impl DerefMut for ExtractedWindows {
 fn extract_windows(
     mut extracted_windows: ResMut<ExtractedWindows>,
     mut closed: Extract<EventReader<WindowClosed>>,
+    primary: Extract<Res<PrimaryWindow>>,
     windows: Extract<
         Query<
             (
@@ -85,6 +87,8 @@ fn extract_windows(
         >,
     >,
 ) {
+    extracted_windows.primary = primary.window;
+
     for (entity, resolution, handle, presentation) in windows.iter() {
         let (new_width, new_height) = (
             resolution.physical_width().max(1),
