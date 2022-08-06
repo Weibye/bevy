@@ -79,7 +79,7 @@ impl Plugin for WinitPlugin {
             NonSendMut<EventLoop<()>>,
             Query<(Entity, WindowComponents), Added<Window>>,
             NonSendMut<WinitWindows>,
-        )> = SystemState::new(&mut app.world);
+        )> = SystemState::from_world(&mut app.world);
 
         {
             let (mut commands, mut event_loop, new_windows, mut winit_windows) =
@@ -229,6 +229,14 @@ pub fn winit_runner_with(mut app: App) {
     let return_from_run = app.world.resource::<WinitSettings>().return_from_run;
 
     trace!("Entering winit event loop");
+
+    let mut create_window_system_state: SystemState<(
+        Commands,
+        Query<(Entity, WindowComponents), Added<Window>>,
+        NonSendMut<WinitWindows>,
+        Res<WinitSettings>,
+        Query<Entity, (With<Window>, With<WindowCurrentlyFocused>)>,
+    )> = SystemState::from_world(&mut app.world);
 
     let event_handler = move |event: Event<()>,
                               event_loop: &EventLoopWindowTarget<()>,
@@ -580,20 +588,13 @@ pub fn winit_runner_with(mut app: App) {
                 winit_state.active = true;
             }
             event::Event::MainEventsCleared => {
-                let mut system_state: SystemState<(
-                    Commands,
-                    Query<(Entity, WindowComponents), Added<Window>>,
-                    NonSendMut<WinitWindows>,
-                    Res<WinitSettings>,
-                    Query<Entity, (With<Window>, With<WindowCurrentlyFocused>)>,
-                )> = SystemState::new(&mut app.world);
                 let (
                     mut commands,
                     new_windows,
                     mut winit_windows,
                     winit_config,
                     window_focused_query,
-                ) = system_state.get_mut(&mut app.world);
+                ) = create_window_system_state.get_mut(&mut app.world);
 
                 // Responsible for creating new windows
                 create_window_system(commands, event_loop, new_windows, winit_windows);

@@ -102,6 +102,8 @@ pub struct WindowBundle {
     // Maybe default this when using wasm?
     //pub canvas: WindowCanvas,
     pub resize_constraints: WindowResizeConstraints,
+    pub resizable: WindowResizable,
+    pub decorated: WindowDecorated,
 }
 
 #[derive(WorldQuery)]
@@ -408,8 +410,8 @@ impl Default for WindowResolution {
         WindowResolution {
             requested_width: 1280.,
             requested_height: 720.,
-            physical_width: 0,
-            physical_height: 0,
+            physical_width: 1280,
+            physical_height: 720,
             scale_factor_override: None,
             scale_factor: 1.0,
         }

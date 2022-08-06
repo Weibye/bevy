@@ -35,12 +35,12 @@ pub fn create_window_system(
     mut winit_windows: NonSendMut<WinitWindows>,
 ) {
     for (window_entity, components) in &created_windows {
-        info!("Creating a new window");
-
         if let Some(_) = winit_windows.get_window(window_entity) {
             // Just a safe guard
             continue;
         }
+
+        info!("Creating a new window");
 
         let winit_window = winit_windows.create_window(&event_loop, window_entity, &components);
 

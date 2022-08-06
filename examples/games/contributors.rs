@@ -254,11 +254,7 @@ fn collision_system(
     mut query: Query<(&mut Velocity, &mut Transform), With<Contributor>>,
 ) {
     let window_resolution = window_resolutions
-        .get(
-            primary_window
-                .window
-                .expect("Should have a valid PrimaryWindow"),
-        )
+        .get(primary_window.window)
         .expect("PrimaryWindow should have a valid Resolution component");
 
     let ceiling = window_resolution.height() / 2.;
