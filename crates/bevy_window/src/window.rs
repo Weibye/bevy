@@ -3,9 +3,8 @@ use std::borrow::Cow;
 
 use bevy_ecs::{
     entity::Entity,
-    prelude::{Bundle, Component, Query, With, Without},
+    prelude::{Bundle, Component},
     query::WorldQuery,
-    system::Commands,
 };
 use bevy_math::{DVec2, IVec2, UVec2, Vec2};
 use bevy_reflect::{FromReflect, Reflect};
@@ -182,15 +181,9 @@ impl WindowResizeConstraints {
             max_height,
         }
     }
-
-    // /// The window's client resize constraint in logical pixels.
-    // #[inline]
-    // pub fn resize_constraints(&self) -> WindowResizeConstraints {
-    //     self.resize_constraints
-    // }
 }
 
-/// A marker component on an entity containing a window
+/// A marker component on an entity that is a window
 #[derive(Default, Debug, Component, Copy, Clone)]
 pub struct Window;
 
@@ -267,16 +260,13 @@ impl CursorPosition {
         self.physical_cursor_position
     }
 
-    // TODO: Docs
     pub fn set(&mut self, position: Option<DVec2>) {
         self.physical_cursor_position = position;
     }
 }
 
-// TODO: Figure out how this connects to everything
 #[derive(Component)]
 pub struct WindowHandle {
-    // TODo: What should be creating and setting this?
     raw_window_handle: RawWindowHandleWrapper,
 }
 
@@ -573,6 +563,7 @@ pub enum MonitorSelection {
     /// Uses monitor with the specified index.
     Number(usize),
 }
+<<<<<<< HEAD
 
 <<<<<<< HEAD
 /// Describes the information needed for creating a window.
@@ -651,29 +642,3 @@ pub struct WindowDescriptor {
     /// This value has no effect on non-web platforms.
     pub fit_canvas_to_parent: bool,
 }
-
-=======
-/*
->>>>>>> a3b51b33f... Migrate from using events to components with change detection
-impl Default for WindowDescriptor {
-    fn default() -> Self {
-        WindowDescriptor {
-            title: "app".to_string(),
-            width: 1280.,
-            height: 720.,
-            position: WindowPosition::Automatic,
-            resize_constraints: WindowResizeConstraints::default(),
-            scale_factor_override: None,
-            present_mode: PresentMode::Fifo,
-            resizable: true,
-            decorations: true,
-            cursor_locked: false,
-            cursor_visible: true,
-            mode: WindowMode::Windowed,
-            transparent: false,
-            canvas: None,
-            fit_canvas_to_parent: false,
-        }
-    }
-}
- */

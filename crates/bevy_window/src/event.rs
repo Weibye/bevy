@@ -13,13 +13,6 @@ pub struct WindowResized {
     pub height: f32,
 }
 
-/// An event that indicates that a new window should be created.
-// #[derive(Debug, Clone)]
-// pub struct CreateWindow {
-//     pub entity: Entity,
-//     pub descriptor: WindowDescriptor,
-// }
-
 // TODO: This would redraw all windows ? If yes, update docs to reflect this
 /// An event that indicates the window should redraw, even if its control flow is set to `Wait` and
 /// there have been no window events.

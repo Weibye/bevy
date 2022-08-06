@@ -75,33 +75,11 @@ pub fn extract_windows(
     mut extracted_windows: ResMut<ExtractedWindows>,
     mut closed: Extract<EventReader<WindowClosed>>,
     primary: Extract<Option<Res<PrimaryWindow>>>,
-    all_windows: Extract<
-        Query<
-            (
-                Entity,
-                Option<&WindowResolution>,
-                Option<&WindowHandle>,
-                Option<&PresentMode>,
-            ),
-            With<Window>,
-        >,
-    >,
     windows: Extract<Query<(Entity, &WindowResolution, &WindowHandle, &PresentMode), With<Window>>>,
 ) {
     extracted_windows.primary = primary.as_ref().map(|primary| primary.window);
 
-    /*
-    println!("extracting windows");
-
-    for (entity, resolution, handle, present_mode) in all_windows.iter() {
-        println!("window: {:?}", entity);
-        println!("resolution: {:?}", resolution);
-        println!("handle: {:?}", handle.is_some());
-        println!("present_mode: {:?}", present_mode);
-    } */
-
     for (entity, resolution, handle, present_mode) in windows.iter() {
-        //println!("extracting window: {:?}", entity);
         let (new_width, new_height) = (
             resolution.physical_width().max(1),
             resolution.physical_height().max(1),

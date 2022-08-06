@@ -85,7 +85,7 @@ pub fn ui_focus_system(
         .as_ref()
         .expect("Primary window should exist")
         .window;
-    // Cursor position of primary window
+
     let cursor_position = cursor_positions
         .get(primary_window_id)
         .expect("Primary window should have a valid WindowCursorPosition component")

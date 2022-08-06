@@ -140,20 +140,11 @@ impl Plugin for RenderPlugin {
             .cloned()
             .unwrap_or_default();
 
-        bevy_utils::tracing::info!("Tryin to request primarywindow");
-
         let mut system_state: SystemState<(
             Query<&WindowHandle, With<Window>>,
             Option<Res<PrimaryWindow>>,
-            // Res<WgpuSettings>,
         )> = SystemState::new(&mut app.world);
-        let (
-            window_query,
-            primary_window,
-            // options, // This was .clone().unwrap_or_default(). Will this work the same?
-        ) = system_state.get(&mut app.world);
-
-        bevy_utils::tracing::info!("Should have resource here");
+        let (window_query, primary_window) = system_state.get(&mut app.world);
 
         if let Some(backends) = options.backends {
             let instance = wgpu::Instance::new(backends);
@@ -173,13 +164,6 @@ impl Plugin for RenderPlugin {
                     // TODO: Helpful panic comment
                     panic!("No WindowHandle component on primary window");
                 }
-                // let handle_component =
-                // // let windows = app.world.resource_mut::<bevy_window::Windows>();
-                // let raw_handle = windows.get_primary().map(|window| unsafe {
-                //     let handle = window.raw_window_handle().get_handle();
-                //     instance.create_surface(&handle)
-                // });
-                // raw_handle
             };
             let request_adapter_options = wgpu::RequestAdapterOptions {
                 power_preference: options.power_preference,

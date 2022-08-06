@@ -74,8 +74,6 @@ pub struct WindowPlugin;
 impl Plugin for WindowPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<WindowResized>()
-            // TODO: This is now moved to a command and no longer needed
-            // .add_event::<CreateWindow>()
             .add_event::<WindowCreated>()
             .add_event::<WindowClosed>()
             .add_event::<WindowCloseRequested>()
@@ -89,8 +87,6 @@ impl Plugin for WindowPlugin {
             .add_event::<WindowBackendScaleFactorChanged>()
             .add_event::<FileDragAndDrop>()
             .add_event::<WindowMoved>();
-
-        app.add_system_to_stage(CoreStage::PreUpdate, default_necessary_components);
 
         let settings = app
             .world
