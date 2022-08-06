@@ -665,6 +665,8 @@ pub fn winit_runner_with(mut app: App) {
             }
             _ => (),
         }
+
+        create_window_system_state.apply(&mut app.world);
     };
 
     // If true, returns control from Winit back to the main Bevy loop

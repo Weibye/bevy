@@ -124,53 +124,6 @@ pub struct WindowComponents<'a> {
     pub transparent: Option<&'a WindowTransparent>,
 }
 
-/// Add any window properties that weren't specified.
-pub fn default_necessary_components(
-    mut commands: Commands,
-    cursor: Query<Entity, (With<Window>, Without<Cursor>)>,
-    cursor_position: Query<Entity, (With<Window>, Without<CursorPosition>)>,
-    present_mode: Query<Entity, (With<Window>, Without<PresentMode>)>,
-    window_mode: Query<Entity, (With<Window>, Without<WindowMode>)>,
-    position: Query<Entity, (With<Window>, Without<WindowPosition>)>,
-    resolution: Query<Entity, (With<Window>, Without<WindowResolution>)>,
-    title: Query<Entity, (With<Window>, Without<WindowTitle>)>,
-    resize_constraints: Query<Entity, (With<Window>, Without<WindowResizeConstraints>)>,
-) {
-    for window in &cursor {
-        commands.entity(window).insert(Cursor::default());
-    }
-
-    for window in &cursor_position {
-        commands.entity(window).insert(CursorPosition::default());
-    }
-
-    for window in &present_mode {
-        commands.entity(window).insert(PresentMode::default());
-    }
-
-    for window in &window_mode {
-        commands.entity(window).insert(WindowMode::default());
-    }
-
-    for window in &position {
-        commands.entity(window).insert(WindowPosition::default());
-    }
-
-    for window in &resolution {
-        commands.entity(window).insert(WindowResolution::default());
-    }
-
-    for window in &title {
-        commands.entity(window).insert(WindowTitle::default());
-    }
-
-    for window in &resize_constraints {
-        commands
-            .entity(window)
-            .insert(WindowResizeConstraints::default());
-    }
-}
-
 /// The size limits on a window.
 ///
 /// These values are measured in logical pixels, so the user's
@@ -419,21 +372,13 @@ impl Default for WindowResolution {
 }
 
 impl WindowResolution {
-    pub fn new(
-        requested_width: f32,
-        requested_height: f32,
-        physical_width: u32,
-        physical_height: u32,
-        scale_factor_override: Option<f64>,
-        scale_factor: f64,
-    ) -> Self {
+    pub fn new(width: f32, height: f32) -> Self {
         Self {
-            requested_width,
-            requested_height,
-            physical_width,
-            physical_height,
-            scale_factor_override,
-            scale_factor,
+            requested_width: width,
+            requested_height: height,
+            physical_width: width as u32,
+            physical_height: height as u32,
+            ..Default::default()
         }
     }
 

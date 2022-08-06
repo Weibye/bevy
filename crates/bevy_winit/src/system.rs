@@ -30,7 +30,7 @@ use crate::{converters, get_best_videomode, get_fitting_videomode, WinitWindows}
 /// This will default any necessary components if they are not already added.
 pub fn create_window_system(
     mut commands: Commands,
-    mut event_loop: &EventLoopWindowTarget<()>,
+    event_loop: &EventLoopWindowTarget<()>,
     created_windows: Query<(Entity, WindowComponents), Added<Window>>,
     mut winit_windows: NonSendMut<WinitWindows>,
 ) {
@@ -40,7 +40,7 @@ pub fn create_window_system(
             continue;
         }
 
-        info!("Creating a new window");
+        info!("Creating a new window: {:?}", window_entity);
 
         let winit_window = winit_windows.create_window(&event_loop, window_entity, &components);
 

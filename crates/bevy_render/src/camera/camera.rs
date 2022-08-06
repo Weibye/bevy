@@ -268,9 +268,13 @@ impl RenderTarget {
         images: &'a RenderAssets<Image>,
     ) -> Option<&'a TextureView> {
         match self {
-            RenderTarget::Window(window_id) => windows
-                .get(window_id)
-                .and_then(|window| window.swap_chain_texture.as_ref()),
+            RenderTarget::Window(window_id) => {
+                let texture_view = windows
+                    .get(window_id)
+                    .and_then(|window| window.swap_chain_texture.as_ref());
+                //dbg!(window_id, texture_view.is_some());
+                texture_view
+            }
             RenderTarget::Image(image_handle) => {
                 images.get(image_handle).map(|image| &image.texture_view)
             }

@@ -1,4 +1,8 @@
-use crate::{PrimaryWindow, Window, WindowCloseRequested, WindowClosed, WindowCurrentlyFocused};
+use crate::{
+    Cursor, CursorPosition, PresentMode, PrimaryWindow, Window, WindowCloseRequested, WindowClosed,
+    WindowCurrentlyFocused, WindowMode, WindowPosition, WindowResizeConstraints, WindowResolution,
+    WindowTitle,
+};
 
 use bevy_app::AppExit;
 use bevy_ecs::prelude::*;
@@ -68,5 +72,52 @@ pub fn close_on_esc(
         if input.just_pressed(KeyCode::Escape) {
             //commands.window(focused_window).close();
         }
+    }
+}
+
+/// Add any window properties that weren't specified.
+pub fn default_necessary_components(
+    mut commands: Commands,
+    cursor: Query<Entity, (With<Window>, Without<Cursor>)>,
+    cursor_position: Query<Entity, (With<Window>, Without<CursorPosition>)>,
+    present_mode: Query<Entity, (With<Window>, Without<PresentMode>)>,
+    window_mode: Query<Entity, (With<Window>, Without<WindowMode>)>,
+    position: Query<Entity, (With<Window>, Without<WindowPosition>)>,
+    resolution: Query<Entity, (With<Window>, Without<WindowResolution>)>,
+    title: Query<Entity, (With<Window>, Without<WindowTitle>)>,
+    resize_constraints: Query<Entity, (With<Window>, Without<WindowResizeConstraints>)>,
+) {
+    for window in &cursor {
+        commands.entity(window).insert(Cursor::default());
+    }
+
+    for window in &cursor_position {
+        commands.entity(window).insert(CursorPosition::default());
+    }
+
+    for window in &present_mode {
+        commands.entity(window).insert(PresentMode::default());
+    }
+
+    for window in &window_mode {
+        commands.entity(window).insert(WindowMode::default());
+    }
+
+    for window in &position {
+        commands.entity(window).insert(WindowPosition::default());
+    }
+
+    for window in &resolution {
+        commands.entity(window).insert(WindowResolution::default());
+    }
+
+    for window in &title {
+        commands.entity(window).insert(WindowTitle::default());
+    }
+
+    for window in &resize_constraints {
+        commands
+            .entity(window)
+            .insert(WindowResizeConstraints::default());
     }
 }

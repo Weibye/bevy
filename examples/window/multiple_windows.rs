@@ -1,6 +1,10 @@
 //! Uses two windows to visualize a 3D model from different angles.
 
-use bevy::{prelude::*, render::camera::RenderTarget, window::PresentMode};
+use bevy::{
+    prelude::*,
+    render::camera::RenderTarget,
+    window::{PresentMode, PrimaryWindow, Window, WindowResolution, WindowTitle},
+};
 
 fn main() {
     App::new()
@@ -12,7 +16,11 @@ fn main() {
         .run();
 }
 
-fn setup_scene(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup_scene(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    primary_window: Res<PrimaryWindow>,
+) {
     // add entities to the world
     commands.spawn_bundle(SceneBundle {
         scene: asset_server.load("models/monkey/Monkey.gltf#Scene0"),
@@ -26,22 +34,23 @@ fn setup_scene(mut commands: Commands, asset_server: Res<AssetServer>) {
     // main camera
     commands.spawn_bundle(Camera3dBundle {
         transform: Transform::from_xyz(0.0, 0.0, 6.0).looking_at(Vec3::ZERO, Vec3::Y),
+        camera: Camera {
+            target: RenderTarget::Window(primary_window.window),
+            ..default()
+        },
         ..default()
     });
 }
 
 fn setup_second_window(mut commands: Commands) {
     // Spawn a new entity that will act as our window id
-    let window_id = commands.spawn().id();
-
-    // Send a command to spawn a new window on this entity
-    commands.window(window_id).create_window(WindowDescriptor {
-        width: 800.,
-        height: 600.,
-        present_mode: PresentMode::Immediate,
-        title: "Second window".to_string(),
-        ..default()
-    });
+    let window_id = commands
+        .spawn()
+        .insert_bundle(WindowBundle {
+            title: WindowTitle::new("Second window"),
+            ..Default::default()
+        })
+        .id();
 
     // second window camera
     commands.spawn_bundle(Camera3dBundle {

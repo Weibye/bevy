@@ -90,7 +90,7 @@ impl Plugin for WindowPlugin {
             .add_event::<FileDragAndDrop>()
             .add_event::<WindowMoved>();
 
-        bevy_utils::tracing::info!("Hello");
+        app.add_system_to_stage(CoreStage::PreUpdate, default_necessary_components);
 
         let settings = app
             .world
