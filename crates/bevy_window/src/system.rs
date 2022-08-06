@@ -1,24 +1,8 @@
-use crate::{
-    PrimaryWindow, Window, WindowCloseRequested, WindowClosed, WindowCommandsExtension,
-    WindowCurrentlyFocused, WindowDescriptor,
-};
+use crate::{PrimaryWindow, Window, WindowCloseRequested, WindowClosed, WindowCurrentlyFocused};
 
 use bevy_app::AppExit;
 use bevy_ecs::prelude::*;
 use bevy_input::{keyboard::KeyCode, Input};
-
-pub fn create_primary_window(mut commands: Commands, mut primary: ResMut<PrimaryWindow>) {
-
-    bevy_utils::tracing::info!("Creating primary window");
-    let entity = commands.spawn().id();
-
-    commands
-        .window(entity)
-        .create_window(WindowDescriptor::default());
-
-    // TODO: Maybe this should be controlled by window backend
-    primary.window = Some(entity);
-}
 
 /// Exit the application when there are no open windows.
 ///
@@ -39,12 +23,12 @@ pub fn exit_on_all_closed(mut app_exit_events: EventWriter<AppExit>, windows: Qu
 // TODO: More docs
 pub fn exit_on_primary_closed(
     mut app_exit_events: EventWriter<AppExit>,
-    primary: Res<PrimaryWindow>,
+    primary_window: Option<Res<PrimaryWindow>>,
     mut window_close: EventReader<WindowClosed>,
 ) {
-    for window in window_close.iter() {
-        if let Some(primary_window) = primary.window {
-            if primary_window == window.entity {
+    if let Some(primary_window) = primary_window {
+        for window in window_close.iter() {
+            if primary_window.window == window.entity {
                 // Primary window has been closed
                 app_exit_events.send(AppExit);
             }
@@ -61,7 +45,7 @@ pub fn exit_on_primary_closed(
 /// [`WindowPlugin`]: crate::WindowPlugin
 pub fn close_when_requested(mut commands: Commands, mut closed: EventReader<WindowCloseRequested>) {
     for event in closed.iter() {
-        commands.window(event.entity).close();
+        //commands.entity(entity).close();
     }
 }
 
@@ -82,7 +66,7 @@ pub fn close_on_esc(
 
     for focused_window in focused_windows.iter() {
         if input.just_pressed(KeyCode::Escape) {
-            commands.window(focused_window).close();
+            //commands.window(focused_window).close();
         }
     }
 }

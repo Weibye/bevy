@@ -144,7 +144,7 @@ impl Plugin for RenderPlugin {
 
         let mut system_state: SystemState<(
             Query<&WindowHandle, With<Window>>,
-            Res<PrimaryWindow>,
+            Option<Res<PrimaryWindow>>,
             // Res<WgpuSettings>,
         )> = SystemState::new(&mut app.world);
         let (
@@ -161,8 +161,8 @@ impl Plugin for RenderPlugin {
                 // TODO: This can probably be cleaner
                 if let Ok(handle_component) = window_query.get(
                     primary_window
-                        .window
-                        .expect("There should be a primary window"),
+                        .expect("There should be a primary window")
+                        .window,
                 ) {
                     // TODO: Make sure this is ok
                     unsafe {

@@ -12,7 +12,7 @@ use bevy_render::camera::{Camera, RenderTarget};
 use bevy_render::view::ComputedVisibility;
 use bevy_transform::components::GlobalTransform;
 use bevy_utils::FloatOrd;
-use bevy_window::{PrimaryWindow, Window, WindowCursorPosition};
+use bevy_window::{CursorPosition, PrimaryWindow, Window};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
@@ -67,8 +67,8 @@ pub struct State {
 /// Entities with a hidden [`ComputedVisibility`] are always treated as released.
 pub fn ui_focus_system(
     mut state: Local<State>,
-    primary_window: Res<PrimaryWindow>,
-    cursor_positions: Query<&WindowCursorPosition, With<Window>>,
+    primary_window: Option<Res<PrimaryWindow>>,
+    cursor_positions: Query<&CursorPosition, With<Window>>,
     mouse_button_input: Res<Input<MouseButton>>,
     touches_input: Res<Touches>,
     mut node_query: Query<(
@@ -81,12 +81,15 @@ pub fn ui_focus_system(
         Option<&ComputedVisibility>,
     )>,
 ) {
-    let primary_window_id = primary_window.window.expect("Primary window should exist");
+    let primary_window_id = primary_window
+        .as_ref()
+        .expect("Primary window should exist")
+        .window;
     // Cursor position of primary window
     let cursor_position = cursor_positions
         .get(primary_window_id)
         .expect("Primary window should have a valid WindowCursorPosition component")
-        .physical_cursor_position();
+        .position();
 
     // reset entities that were both clicked and released in the last frame
     for entity in state.entities_to_reset.drain(..) {

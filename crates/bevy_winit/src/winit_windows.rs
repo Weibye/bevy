@@ -1,7 +1,7 @@
 use bevy_ecs::entity::Entity;
 use bevy_math::IVec2;
 use bevy_utils::{tracing::warn, HashMap};
-use bevy_window::{Window, WindowDescriptor, WindowMode};
+use bevy_window::{Window, WindowComponents, WindowComponentsItem, WindowMode};
 use raw_window_handle::HasRawWindowHandle;
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition};
 
@@ -21,11 +21,11 @@ impl WinitWindows {
         &mut self,
         event_loop: &winit::event_loop::EventLoopWindowTarget<()>,
         entity: Entity,
-        window_descriptor: &WindowDescriptor,
+        components: &WindowComponentsItem,
     ) -> &winit::window::Window {
         let mut winit_window_builder = winit::window::WindowBuilder::new();
 
-        winit_window_builder = match window_descriptor.mode {
+        winit_window_builder = match components.window_mode {
             WindowMode::BorderlessFullscreen => winit_window_builder.with_fullscreen(Some(
                 winit::window::Fullscreen::Borderless(event_loop.primary_monitor()),
             )),
@@ -37,21 +37,15 @@ impl WinitWindows {
             WindowMode::SizedFullscreen => winit_window_builder.with_fullscreen(Some(
                 winit::window::Fullscreen::Exclusive(get_fitting_videomode(
                     &event_loop.primary_monitor().unwrap(),
-                    window_descriptor.width as u32,
-                    window_descriptor.height as u32,
+                    components.resolution.width() as u32,
+                    components.resolution.height() as u32,
                 )),
             )),
             _ => {
-                let WindowDescriptor {
-                    width,
-                    height,
-                    position,
-                    scale_factor_override,
-                    ..
-                } = window_descriptor;
-
                 use bevy_window::WindowPosition::*;
-                match position {
+                let resolution = &components.resolution;
+
+                match components.position {
                     Automatic => { /* Window manager will handle position */ }
                     Centered(monitor_selection) => {
                         use bevy_window::MonitorSelection::*;
@@ -67,12 +61,13 @@ impl WinitWindows {
                         if let Some(monitor) = maybe_monitor {
                             let screen_size = monitor.size();
 
-                            let scale_factor = scale_factor_override.unwrap_or(1.0);
+                            let scale_factor = resolution.scale_factor();
 
                             // Logical to physical window size
-                            let (width, height): (u32, u32) = LogicalSize::new(*width, *height)
-                                .to_physical::<u32>(scale_factor)
-                                .into();
+                            let (width, height): (u32, u32) =
+                                LogicalSize::new(resolution.width(), resolution.height())
+                                    .to_physical::<u32>(scale_factor)
+                                    .into();
 
                             let position = PhysicalPosition {
                                 x: screen_size.width.saturating_sub(width) as f64 / 2.
@@ -87,10 +82,10 @@ impl WinitWindows {
                         }
                     }
                     At(position) => {
-                        if let Some(sf) = scale_factor_override {
+                        if let Some(sf) = components.resolution.scale_factor_override() {
                             winit_window_builder = winit_window_builder.with_position(
                                 LogicalPosition::new(position[0] as f64, position[1] as f64)
-                                    .to_physical::<f64>(*sf),
+                                    .to_physical::<f64>(sf),
                             );
                         } else {
                             winit_window_builder = winit_window_builder.with_position(
@@ -100,19 +95,22 @@ impl WinitWindows {
                     }
                 }
 
-                if let Some(sf) = scale_factor_override {
-                    winit_window_builder
-                        .with_inner_size(LogicalSize::new(*width, *height).to_physical::<f64>(*sf))
+                if let Some(sf) = resolution.scale_factor_override() {
+                    winit_window_builder.with_inner_size(
+                        LogicalSize::new(resolution.width(), resolution.height())
+                            .to_physical::<f64>(sf),
+                    )
                 } else {
-                    winit_window_builder.with_inner_size(LogicalSize::new(*width, *height))
+                    winit_window_builder
+                        .with_inner_size(LogicalSize::new(resolution.width(), resolution.height()))
                 }
             }
-            .with_resizable(window_descriptor.resizable)
-            .with_decorations(window_descriptor.decorations)
-            .with_transparent(window_descriptor.transparent),
+            .with_resizable(components.resizable.is_some())
+            .with_decorations(components.decorated.is_some())
+            .with_transparent(components.transparent.is_some()),
         };
 
-        let constraints = window_descriptor.resize_constraints.check_constraints();
+        let constraints = components.resize_constraints.check_constraints();
         let min_inner_size = LogicalSize {
             width: constraints.min_width,
             height: constraints.min_height,
@@ -132,7 +130,7 @@ impl WinitWindows {
             };
 
         #[allow(unused_mut)]
-        let mut winit_window_builder = winit_window_builder.with_title(&window_descriptor.title);
+        let mut winit_window_builder = winit_window_builder.with_title(components.title.as_str());
 
         #[cfg(target_arch = "wasm32")]
         {
@@ -156,14 +154,14 @@ impl WinitWindows {
 
         let winit_window = winit_window_builder.build(event_loop).unwrap();
 
-        if window_descriptor.cursor_locked {
+        if components.cursor.locked() {
             match winit_window.set_cursor_grab(true) {
                 Ok(_) | Err(winit::error::ExternalError::NotSupported(_)) => {}
                 Err(err) => Err(err).unwrap(),
             }
         }
 
-        winit_window.set_cursor_visible(window_descriptor.cursor_visible);
+        winit_window.set_cursor_visible(components.cursor.visible());
 
         self.window_id_to_winit.insert(entity, winit_window.id());
         self.winit_to_window_id.insert(winit_window.id(), entity);

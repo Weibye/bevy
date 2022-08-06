@@ -1,8 +1,11 @@
 use bevy_ecs::system::Resource;
+use std::borrow::Cow;
+
 use bevy_ecs::{
     entity::Entity,
-    prelude::{Bundle, Component},
-    system::{Command, Commands},
+    prelude::{Bundle, Component, Query, With, Without},
+    query::WorldQuery,
+    system::Commands,
 };
 use bevy_math::{DVec2, IVec2, UVec2, Vec2};
 use bevy_reflect::{FromReflect, Reflect};
@@ -26,7 +29,7 @@ use crate::{raw_window_handle::RawWindowHandleWrapper, WindowFocused};
 /// The presentation mode may be declared in the [`WindowDescriptor`](WindowDescriptor::present_mode)
 /// or updated on a [`Window`](Window::set_present_mode).
 #[repr(C)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Component, Debug, PartialEq, Eq, Hash)]
 #[doc(alias = "vsync")]
 pub enum PresentMode {
     /// Chooses FifoRelaxed -> Fifo based on availability.
@@ -59,8 +62,14 @@ pub enum PresentMode {
     Fifo = 4, // NOTE: The explicit ordinal values mirror wgpu.
 }
 
+impl Default for PresentMode {
+    fn default() -> Self {
+        PresentMode::Fifo
+    }
+}
+
 /// Defines the way a window is displayed
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Component, Clone, Copy, PartialEq)]
 pub enum WindowMode {
     /// Creates a window that uses the given size
     Windowed,
@@ -73,22 +82,91 @@ pub enum WindowMode {
     Fullscreen,
 }
 
-// This should only be used by the window backend, so maybe it should not be a bundle for those reasons
-// The window backend is responsible for spawning the correct components that together define a whole window
-#[derive(Bundle)]
+impl Default for WindowMode {
+    fn default() -> Self {
+        WindowMode::Windowed
+    }
+}
+
+/// Define how a window will be created and how it will behave.
+#[derive(Default, Bundle, Debug, Clone)]
 pub struct WindowBundle {
     pub window: Window,
-    pub cursor: WindowCursor,
-    pub cursor_position: WindowCursorPosition,
-    pub handle: WindowHandle,
-    pub presentation: WindowPresentation,
-    pub mode: WindowModeComponent,
+    pub cursor: Cursor,
+    pub cursor_position: CursorPosition,
+    pub present_mode: PresentMode,
+    pub mode: WindowMode,
     pub position: WindowPosition,
     pub resolution: WindowResolution,
     pub title: WindowTitle,
-    pub canvas: WindowCanvas,
+    // Maybe default this when using wasm?
+    //pub canvas: WindowCanvas,
     pub resize_constraints: WindowResizeConstraints,
-    pub focused: WindowCurrentlyFocused,
+}
+
+#[derive(WorldQuery)]
+pub struct WindowComponents<'a> {
+    pub entity: Entity,
+    pub window: &'a Window,
+    pub cursor: &'a Cursor,
+    pub cursor_position: &'a CursorPosition,
+    pub present_mode: &'a PresentMode,
+    pub window_mode: &'a WindowMode,
+    pub position: &'a WindowPosition,
+    pub resolution: &'a WindowResolution,
+    pub title: &'a WindowTitle,
+    pub resize_constraints: &'a WindowResizeConstraints,
+
+    pub resizable: Option<&'a WindowResizable>,
+    pub decorated: Option<&'a WindowDecorated>,
+    pub transparent: Option<&'a WindowTransparent>,
+}
+
+/// Add any window properties that weren't specified.
+pub fn default_necessary_components(
+    mut commands: Commands,
+    cursor: Query<Entity, (With<Window>, Without<Cursor>)>,
+    cursor_position: Query<Entity, (With<Window>, Without<CursorPosition>)>,
+    present_mode: Query<Entity, (With<Window>, Without<PresentMode>)>,
+    window_mode: Query<Entity, (With<Window>, Without<WindowMode>)>,
+    position: Query<Entity, (With<Window>, Without<WindowPosition>)>,
+    resolution: Query<Entity, (With<Window>, Without<WindowResolution>)>,
+    title: Query<Entity, (With<Window>, Without<WindowTitle>)>,
+    resize_constraints: Query<Entity, (With<Window>, Without<WindowResizeConstraints>)>,
+) {
+    for window in &cursor {
+        commands.entity(window).insert(Cursor::default());
+    }
+
+    for window in &cursor_position {
+        commands.entity(window).insert(CursorPosition::default());
+    }
+
+    for window in &present_mode {
+        commands.entity(window).insert(PresentMode::default());
+    }
+
+    for window in &window_mode {
+        commands.entity(window).insert(WindowMode::default());
+    }
+
+    for window in &position {
+        commands.entity(window).insert(WindowPosition::default());
+    }
+
+    for window in &resolution {
+        commands.entity(window).insert(WindowResolution::default());
+    }
+
+    for window in &title {
+        commands.entity(window).insert(WindowTitle::default());
+    }
+
+    for window in &resize_constraints {
+        commands
+            .entity(window)
+            .insert(WindowResizeConstraints::default());
+    }
 }
 
 /// The size limits on a window.
@@ -158,61 +236,70 @@ impl WindowResizeConstraints {
 }
 
 /// A marker component on an entity containing a window
-#[derive(Debug, Component)]
+#[derive(Default, Debug, Component, Copy, Clone)]
 pub struct Window;
 
-#[derive(Component)]
-pub struct WindowCursor {
-    cursor_icon: CursorIcon,
-    cursor_visible: bool,
-    cursor_locked: bool,
+#[derive(Debug, Component, Copy, Clone)]
+pub struct Cursor {
+    icon: CursorIcon,
+    visible: bool,
+    locked: bool,
 }
 
-impl WindowCursor {
-    pub fn new(cursor_icon: CursorIcon, cursor_visible: bool, cursor_locked: bool) -> Self {
+impl Default for Cursor {
+    fn default() -> Self {
+        Cursor {
+            icon: CursorIcon::Default,
+            visible: true,
+            locked: false,
+        }
+    }
+}
+
+impl Cursor {
+    pub fn new(icon: CursorIcon, visible: bool, locked: bool) -> Self {
         Self {
-            cursor_icon,
-            cursor_visible,
-            cursor_locked,
+            icon,
+            visible,
+            locked,
         }
     }
 
     #[inline]
-    pub fn cursor_icon(&self) -> CursorIcon {
-        self.cursor_icon
+    pub fn icon(&self) -> CursorIcon {
+        self.icon
     }
 
     #[inline]
-    pub fn cursor_visible(&self) -> bool {
-        self.cursor_visible
+    pub fn visible(&self) -> bool {
+        self.visible
     }
 
     #[inline]
-    pub fn cursor_locked(&self) -> bool {
-        self.cursor_locked
+    pub fn locked(&self) -> bool {
+        self.locked
     }
 
-    pub fn set_icon_from_backend(&mut self, icon: CursorIcon) {
-        self.cursor_icon = icon;
+    pub fn set_icon(&mut self, icon: CursorIcon) {
+        self.icon = icon;
     }
 
-    pub fn set_visible_from_backend(&mut self, visible: bool) {
-        self.cursor_visible = visible;
+    pub fn set_visible(&mut self, visible: bool) {
+        self.visible = visible;
     }
 
-    pub fn set_locked_from_backend(&mut self, locked: bool) {
-        self.cursor_locked = locked;
+    pub fn set_locked(&mut self, locked: bool) {
+        self.locked = locked;
     }
 }
 
-#[derive(Component)]
-pub struct WindowCursorPosition {
-    // TODO: Docs
-    /// This is None if the cursor has left the window
+#[derive(Default, Debug, Component, Clone)]
+pub struct CursorPosition {
+    /// Cursor position if it is inside of the window.
     physical_cursor_position: Option<DVec2>,
 }
 
-impl WindowCursorPosition {
+impl CursorPosition {
     pub fn new(physical_cursor_position: Option<DVec2>) -> Self {
         Self {
             physical_cursor_position,
@@ -221,13 +308,12 @@ impl WindowCursorPosition {
 
     /// The current mouse position, in physical pixels.
     #[inline]
-    pub fn physical_cursor_position(&self) -> Option<DVec2> {
+    pub fn position(&self) -> Option<DVec2> {
         self.physical_cursor_position
     }
 
     // TODO: Docs
-    pub fn update_position_from_backend(&mut self, position: Option<DVec2>) {
-        // TODO: Fix type inconsitencies
+    pub fn set(&mut self, position: Option<DVec2>) {
         self.physical_cursor_position = position;
     }
 }
@@ -251,49 +337,6 @@ impl WindowHandle {
     }
 }
 
-// TODO: Find better name
-#[derive(Component)]
-pub struct WindowPresentation {
-    present_mode: PresentMode,
-}
-
-impl WindowPresentation {
-    pub fn new(present_mode: PresentMode) -> Self {
-        Self { present_mode }
-    }
-
-    #[inline]
-    #[doc(alias = "vsync")]
-    pub fn present_mode(&self) -> PresentMode {
-        self.present_mode
-    }
-
-    pub fn update_present_mode_from_backend(&mut self, present_mode: PresentMode) {
-        self.present_mode = present_mode;
-    }
-}
-
-// TODO: Find better name
-#[derive(Component)]
-pub struct WindowModeComponent {
-    mode: WindowMode,
-}
-
-impl WindowModeComponent {
-    pub fn new(mode: WindowMode) -> Self {
-        Self { mode }
-    }
-
-    #[inline]
-    pub fn mode(&self) -> WindowMode {
-        self.mode
-    }
-
-    pub fn update_mode_from_backend(&mut self, mode: WindowMode) {
-        self.mode = mode;
-    }
-}
-
 /// Defines where window should be placed at on creation.
 #[derive(Debug, Clone, Copy, Component)]
 pub enum WindowPosition {
@@ -307,6 +350,12 @@ pub enum WindowPosition {
     ///
     /// (0,0) represents top-left corner of screen space.
     At(IVec2),
+}
+
+impl Default for WindowPosition {
+    fn default() -> Self {
+        WindowPosition::Automatic
+    }
 }
 
 impl WindowPosition {
@@ -344,14 +393,27 @@ impl WindowPosition {
 /// quantization of the logical size when converting the physical size to the
 /// logical size through the scaling factor.
 // TODO: Make sure this is used correctly
-#[derive(Component)]
+#[derive(Component, Debug, Clone)]
 pub struct WindowResolution {
     requested_width: f32,
     requested_height: f32,
     physical_width: u32,
     physical_height: u32,
     scale_factor_override: Option<f64>,
-    backend_scale_factor: f64,
+    scale_factor: f64,
+}
+
+impl Default for WindowResolution {
+    fn default() -> Self {
+        WindowResolution {
+            requested_width: 1280.,
+            requested_height: 720.,
+            physical_width: 0,
+            physical_height: 0,
+            scale_factor_override: None,
+            scale_factor: 1.0,
+        }
+    }
 }
 
 impl WindowResolution {
@@ -361,7 +423,7 @@ impl WindowResolution {
         physical_width: u32,
         physical_height: u32,
         scale_factor_override: Option<f64>,
-        backend_scale_factor: f64,
+        scale_factor: f64,
     ) -> Self {
         Self {
             requested_width,
@@ -369,7 +431,7 @@ impl WindowResolution {
             physical_width,
             physical_height,
             scale_factor_override,
-            backend_scale_factor,
+            scale_factor,
         }
     }
 
@@ -378,15 +440,15 @@ impl WindowResolution {
     /// `physical_pixels = logical_pixels * scale_factor`
     pub fn scale_factor(&self) -> f64 {
         self.scale_factor_override
-            .unwrap_or(self.backend_scale_factor)
+            .unwrap_or(self.base_scale_factor())
     }
 
     /// The window scale factor as reported by the window backend.
     ///
     /// This value is unaffected by [`scale_factor_override`](Window::scale_factor_override).
     #[inline]
-    pub fn backend_scale_factor(&self) -> f64 {
-        self.backend_scale_factor
+    pub fn base_scale_factor(&self) -> f64 {
+        self.scale_factor
     }
     /// The scale factor set with [`set_scale_factor_override`](Window::set_scale_factor_override).
     ///
@@ -413,7 +475,6 @@ impl WindowResolution {
     ///
     /// This may differ from the actual width depending on OS size limits and
     /// the scaling factor for high DPI monitors.
-    // TODO: This is never set
     #[inline]
     pub fn requested_width(&self) -> f32 {
         self.requested_width
@@ -424,7 +485,6 @@ impl WindowResolution {
     ///
     /// This may differ from the actual width depending on OS size limits and
     /// the scaling factor for high DPI monitors.
-    // TODO: This is never set
     #[inline]
     pub fn requested_height(&self) -> f32 {
         self.requested_height
@@ -442,63 +502,84 @@ impl WindowResolution {
         self.physical_height
     }
 
-    #[allow(missing_docs)]
+    /// Set the window's scale factor, this may get overriden by the backend.
     #[inline]
-    pub fn update_scale_factor_from_backend(&mut self, scale_factor: f64) {
-        self.backend_scale_factor = scale_factor;
+    pub fn set_scale_factor(&mut self, scale_factor: f64) {
+        self.scale_factor = scale_factor;
     }
 
-    pub fn update_scale_factor_override(&mut self, scale_factor_override: Option<f64>) {
+    /// Set the window's scale factor, this will be used over what the backend decides.
+    #[inline]
+    pub fn set_scale_factor_override(&mut self, scale_factor_override: Option<f64>) {
         self.scale_factor_override = scale_factor_override;
     }
 
-    #[allow(missing_docs)]
+    /// Set the window's logical resolution.
     #[inline]
-    pub fn update_actual_size_from_backend(&mut self, physical_width: u32, physical_height: u32) {
+    pub fn set_resolution(&mut self, width: f32, height: f32) {
+        self.requested_width = width;
+        self.requested_height = height;
+    }
+
+    /// Set the window's physical resolution in pixels.
+    #[inline]
+    pub fn set_physical_resolution(&mut self, physical_width: u32, physical_height: u32) {
         self.physical_width = physical_width;
         self.physical_height = physical_height;
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Debug, Clone)]
 pub struct WindowTitle {
-    title: String,
+    title: Cow<'static, str>,
+}
+
+impl Default for WindowTitle {
+    fn default() -> Self {
+        WindowTitle::new("Bevy App")
+    }
 }
 
 impl WindowTitle {
-    pub fn new(title: String) -> Self {
-        Self { title }
+    /// Creates a new [`WindowTitle`] from any string-like type.
+    pub fn new(title: impl Into<Cow<'static, str>>) -> Self {
+        WindowTitle {
+            title: title.into(),
+        }
     }
 
-    #[inline]
-    pub fn title(&self) -> &str {
+    /// Sets the window's title.
+    #[inline(always)]
+    pub fn set(&mut self, title: impl Into<Cow<'static, str>>) {
+        *self = WindowTitle::new(title.into());
+    }
+
+    /// Gets the title of the window as a `&str`.
+    #[inline(always)]
+    pub fn as_str(&self) -> &str {
         &self.title
-    }
-
-    pub fn update_title_from_backend(&mut self, title: String) {
-        self.title = title;
     }
 }
 
-#[derive(Component)]
+#[derive(Default, Component, Debug, Clone)]
 pub struct WindowDecorated;
 
-#[derive(Component)]
+#[derive(Default, Component, Debug, Clone)]
 pub struct WindowCurrentlyFocused;
 
-#[derive(Component)]
+#[derive(Default, Component, Debug, Clone)]
 pub struct WindowResizable;
 
-#[derive(Component)]
+#[derive(Default, Component, Debug, Clone)]
 pub struct WindowTransparent;
 
-#[derive(Component)]
+#[derive(Default, Component, Debug, Clone)]
 pub struct WindowMinimized;
 
-#[derive(Component)]
+#[derive(Default, Component, Debug, Clone)]
 pub struct WindowMaximized;
 
-#[derive(Component)]
+#[derive(Component, Debug, Clone)]
 pub struct WindowCanvas {
     canvas: Option<String>,
     fit_canvas_to_parent: bool,
@@ -546,6 +627,7 @@ pub enum MonitorSelection {
     Number(usize),
 }
 
+<<<<<<< HEAD
 /// Describes the information needed for creating a window.
 ///
 /// This should be set up before adding the [`WindowPlugin`](crate::WindowPlugin).
@@ -623,6 +705,9 @@ pub struct WindowDescriptor {
     pub fit_canvas_to_parent: bool,
 }
 
+=======
+/*
+>>>>>>> a3b51b33f... Migrate from using events to components with change detection
 impl Default for WindowDescriptor {
     fn default() -> Self {
         WindowDescriptor {
@@ -644,3 +729,4 @@ impl Default for WindowDescriptor {
         }
     }
 }
+ */

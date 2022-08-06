@@ -288,7 +288,7 @@ impl RenderTarget {
 
     pub fn get_render_target_info(
         &self,
-        primary: &Res<PrimaryWindow>,
+        primary: &Option<Res<PrimaryWindow>>,
         windows: &Query<&WindowResolution, With<Window>>, // TODO: Maybe this could just be a Vec?
         images: &Assets<Image>,
     ) -> Option<RenderTargetInfo> {
@@ -317,8 +317,9 @@ impl RenderTarget {
             }
             RenderTarget::PrimaryWindow => {
                 let window_id = primary
-                    .window
-                    .expect("expected a primary window to exist if going to render to it");
+                    .as_ref()
+                    .expect("expected a primary window to exist if going to render to it")
+                    .window;
                 if let Ok(resolution) = windows.get(window_id) {
                     RenderTargetInfo {
                         physical_size: UVec2::new(
@@ -338,7 +339,7 @@ impl RenderTarget {
     // Check if this render target is contained in the given changed windows or images.
     fn is_changed(
         &self,
-        primary_window: &PrimaryWindow,
+        primary_window: &Option<Res<PrimaryWindow>>,
         changed_window_ids: &[Entity],
         changed_image_handles: &HashSet<&Handle<Image>>,
     ) -> bool {
@@ -347,8 +348,9 @@ impl RenderTarget {
             RenderTarget::Image(image_handle) => changed_image_handles.contains(&image_handle),
             RenderTarget::PrimaryWindow => changed_window_ids.contains(
                 &primary_window
-                    .window
-                    .expect("expected primary window to exist"),
+                    .as_ref()
+                    .expect("expected primary window to exist")
+                    .window,
             ),
         }
     }
@@ -368,7 +370,7 @@ pub fn camera_system<T: CameraProjection + Component>(
     mut window_resized_events: EventReader<WindowResized>,
     mut window_created_events: EventReader<WindowCreated>,
     mut image_asset_events: EventReader<AssetEvent<Image>>,
-    primary_window: Res<PrimaryWindow>,
+    primary_window: Option<Res<PrimaryWindow>>,
     windows: Query<&WindowResolution, With<Window>>,
     images: Res<Assets<Image>>,
     mut queries: ParamSet<(

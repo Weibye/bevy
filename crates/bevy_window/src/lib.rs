@@ -4,20 +4,18 @@ mod event;
 mod raw_window_handle;
 mod system;
 mod window;
-mod window_commands;
 
 pub use crate::raw_window_handle::*;
 pub use cursor::*;
 pub use event::*;
 pub use system::*;
 pub use window::*;
-pub use window_commands::*;
 
 pub mod prelude {
     #[doc(hidden)]
     pub use crate::{
         CursorEntered, CursorIcon, CursorLeft, CursorMoved, FileDragAndDrop, ReceivedCharacter,
-        Window, WindowCommands, WindowCommandsExtension, WindowDescriptor, WindowMoved,
+        Window, WindowBundle, WindowMoved,
     };
 }
 
@@ -90,27 +88,7 @@ impl Plugin for WindowPlugin {
             .add_event::<WindowScaleFactorChanged>()
             .add_event::<WindowBackendScaleFactorChanged>()
             .add_event::<FileDragAndDrop>()
-            .add_event::<WindowMoved>()
-            // Command events
-            .add_event::<CreateWindowCommand>()
-            .add_event::<SetWindowModeCommand>()
-            .add_event::<SetTitleCommand>()
-            .add_event::<SetScaleFactorOverrideCommand>()
-            .add_event::<SetResolutionCommand>()
-            .add_event::<SetPresentModeCommand>()
-            .add_event::<SetResizableCommand>()
-            .add_event::<SetDecorationsCommand>()
-            .add_event::<SetCursorLockModeCommand>()
-            .add_event::<SetCursorIconCommand>()
-            .add_event::<SetCursorVisibilityCommand>()
-            .add_event::<SetCursorPositionCommand>()
-            .add_event::<SetMaximizedCommand>()
-            .add_event::<SetMinimizedCommand>()
-            .add_event::<SetPositionCommand>()
-            .add_event::<SetResizeConstraintsCommand>()
-            .add_event::<CloseWindowCommand>()
-            // Resources
-            .init_resource::<PrimaryWindow>();
+            .add_event::<WindowMoved>();
 
         bevy_utils::tracing::info!("Hello");
 
@@ -133,36 +111,15 @@ impl Plugin for WindowPlugin {
 
             // TODO: The unwrap_or_default is necessary for the user to setup ahead of time what the window should be
             // if not we'll regress on this
-            let window_descriptor = app
+            let window_bundle = app
                 .world
-                .get_resource::<WindowDescriptor>()
-                .map(|descriptor| (*descriptor).clone())
+                .remove_resource::<WindowBundle>()
                 .unwrap_or_default();
 
-            let window_id = app.world.spawn().id();
+            let window_id = app.world.spawn().insert_bundle(window_bundle).id();
 
-            let mut system_state: SystemState<(Commands, ResMut<PrimaryWindow>)> =
-                SystemState::new(&mut app.world);
-            let (mut commands, mut primary_window) = system_state.get_mut(&mut app.world);
-            primary_window.window = Some(window_id);
-            // create_primary_window(commands, primary_window);
-
-            let command = CreateWindowCommand {
-                entity: window_id,
-                descriptor: window_descriptor,
-            };
-
-            // Apply the command directly on the world
-            // I wonder if this causes timing issue: this will trigger a CreateWindowCommand event, but will bevy_winit exist in time to listen to the event?
-            command.write(&mut app.world);
-
-            // let mut create_window_event = app.world.resource_mut::<Events<CreateWindow>>();
-
-            // // TODO: Replace with commands
-            // create_window_event.send(CreateWindow {
-            //     entity: WindowId::primary(),
-            //     descriptor: window_descriptor,
-            // });
+            app.world
+                .insert_resource(PrimaryWindow { window: window_id });
         }
 
         match settings.exit_condition {
@@ -195,19 +152,9 @@ pub enum ExitCondition {
     DontExit,
 }
 
-/// Resource containing the Entity that is currently considered the primary window
+/// Resource containing the Entity that is currently considered the primary window.
+///
+/// This resource is allowed to not exist and should be handled gracefully if it doesn't.
 pub struct PrimaryWindow {
-    // TODO:
-    // Should this be Option?
-    // should this be allowed to change?
-    // If yes, what should be responsible for updating it?
-    pub window: Option<Entity>,
-}
-
-impl Default for PrimaryWindow {
-    fn default() -> Self {
-        Self {
-            window: Option::None,
-        }
-    }
+    pub window: Entity,
 }

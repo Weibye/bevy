@@ -42,7 +42,7 @@ pub fn text_system(
     mut last_scale_factor: Local<f64>,
     mut textures: ResMut<Assets<Image>>,
     fonts: Res<Assets<Font>>,
-    primary_window: Res<PrimaryWindow>,
+    primary_window: Option<Res<PrimaryWindow>>,
     windows: Query<&WindowResolution, With<Window>>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
     mut font_atlas_set_storage: ResMut<Assets<FontAtlasSet>>,
@@ -54,7 +54,12 @@ pub fn text_system(
     )>,
 ) {
     let resolution = windows
-        .get(primary_window.window.expect("Primary window should exist"))
+        .get(
+            primary_window
+                .as_ref()
+                .expect("Primary window should exist")
+                .window,
+        )
         .expect("Primary windows should have a valid WindowResolution component");
     let scale_factor = resolution.scale_factor();
 

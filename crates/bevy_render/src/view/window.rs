@@ -9,7 +9,7 @@ use bevy_ecs::prelude::*;
 use bevy_utils::{tracing::debug, HashMap, HashSet};
 use bevy_window::{
     PresentMode, PrimaryWindow, RawWindowHandleWrapper, Window, WindowClosed, WindowHandle,
-    WindowPresentation, WindowResolution,
+    WindowResolution,
 };
 use std::ops::{Deref, DerefMut};
 use wgpu::TextureFormat;
@@ -74,22 +74,12 @@ impl DerefMut for ExtractedWindows {
 fn extract_windows(
     mut extracted_windows: ResMut<ExtractedWindows>,
     mut closed: Extract<EventReader<WindowClosed>>,
-    primary: Extract<Res<PrimaryWindow>>,
-    windows: Extract<
-        Query<
-            (
-                Entity,
-                &WindowResolution,
-                &WindowHandle,
-                &WindowPresentation,
-            ),
-            With<Window>,
-        >,
-    >,
+    primary: Extract<Option<Res<PrimaryWindow>>>,
+    windows: Extract<Query<(Entity, &WindowResolution, &WindowHandle, &PresentMode), With<Window>>>,
 ) {
-    extracted_windows.primary = primary.window;
+    extracted_windows.primary = primary.as_ref().map(|primary| primary.window);
 
-    for (entity, resolution, handle, presentation) in windows.iter() {
+    for (entity, resolution, handle, present_mode) in windows.iter() {
         let (new_width, new_height) = (
             resolution.physical_width().max(1),
             resolution.physical_height().max(1),
@@ -100,7 +90,7 @@ fn extract_windows(
             handle: handle.raw_window_handle(),
             physical_width: new_width,
             physical_height: new_height,
-            present_mode: presentation.present_mode(),
+            present_mode: *present_mode,
             swap_chain_texture: None,
             size_changed: false,
         });

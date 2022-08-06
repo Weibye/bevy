@@ -197,7 +197,7 @@ pub enum FlexError {
 
 #[allow(clippy::too_many_arguments)]
 pub fn flex_node_system(
-    primary_window: Res<PrimaryWindow>,
+    primary_window: Option<Res<PrimaryWindow>>,
     windows: Query<(Entity, &WindowResolution), With<Window>>,
     mut scale_factor_events: EventReader<WindowScaleFactorChanged>,
     mut flex_surface: ResMut<FlexSurface>,
@@ -218,7 +218,12 @@ pub fn flex_node_system(
 
     // assume one window for time being...
     let (_, primary_resolution) = windows
-        .get(primary_window.window.expect("Primary window should exist"))
+        .get(
+            primary_window
+                .as_ref()
+                .expect("Primary window should exist")
+                .window,
+        )
         .expect("Primary windows should have a valid WindowResolution component");
     let logical_to_physical_factor = primary_resolution.scale_factor();
 
@@ -255,8 +260,8 @@ pub fn flex_node_system(
     // TODO: handle removed nodes
 
     // update window children (for now assuming all Nodes live in the primary window)
-    if let Some(primary_window_id) = primary_window.window {
-        flex_surface.set_window_children(primary_window_id, root_node_query.iter());
+    if let Some(primary_window) = primary_window {
+        flex_surface.set_window_children(primary_window.window, root_node_query.iter());
     }
 
     // update children

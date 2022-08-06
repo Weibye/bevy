@@ -71,7 +71,7 @@ pub fn extract_text2d_sprite(
     mut extracted_sprites: ResMut<ExtractedSprites>,
     texture_atlases: Extract<Res<Assets<TextureAtlas>>>,
     text_pipeline: Extract<Res<DefaultTextPipeline>>,
-    primary_window: Extract<Res<PrimaryWindow>>,
+    primary_window: Extract<Option<Res<PrimaryWindow>>>,
     windows: Extract<Query<&WindowResolution, With<Window>>>,
     text2d_query: Extract<
         Query<(
@@ -84,7 +84,12 @@ pub fn extract_text2d_sprite(
     >,
 ) {
     let resolution = windows
-        .get(primary_window.window.expect("Primary window should exist"))
+        .get(
+            primary_window
+                .as_ref()
+                .expect("Primary window should exist")
+                .window,
+        )
         .expect("Primary windows should have a valid WindowResolution component");
     let scale_factor = resolution.scale_factor() as f32;
 
@@ -156,7 +161,7 @@ pub fn update_text2d_layout(
     mut queue: Local<HashSet<Entity>>,
     mut textures: ResMut<Assets<Image>>,
     fonts: Res<Assets<Font>>,
-    primary_window: Res<PrimaryWindow>,
+    primary_window: Option<Res<PrimaryWindow>>,
     windows: Query<&WindowResolution, With<Window>>,
     mut scale_factor_changed: EventReader<WindowScaleFactorChanged>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
@@ -174,7 +179,12 @@ pub fn update_text2d_layout(
     let factor_changed = scale_factor_changed.iter().last().is_some();
 
     let resolution = windows
-        .get(primary_window.window.expect("Primary window should exist"))
+        .get(
+            primary_window
+                .as_ref()
+                .expect("Primary window should exist")
+                .window,
+        )
         .expect("Primary windows should have a valid WindowResolution component");
     let scale_factor = resolution.scale_factor();
 

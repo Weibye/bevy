@@ -2,7 +2,7 @@ use bevy_ecs::{
     component::TableStorage,
     entity::Entity,
     event::{EventReader, EventWriter},
-    prelude::{Added, Component, With, World},
+    prelude::{Added, Changed, Component, With, World},
     system::{
         Command, Commands, Insert, InsertBundle, NonSendMut, Query, RemovedComponents, SystemState,
     },
@@ -10,101 +10,43 @@ use bevy_ecs::{
 use bevy_math::IVec2;
 use bevy_utils::tracing::{error, info};
 use bevy_window::{
-    CloseWindowCommand, CreateWindowCommand, CursorIcon, SetCursorIconCommand,
-    SetCursorLockModeCommand, SetCursorPositionCommand, SetCursorVisibilityCommand,
-    SetDecorationsCommand, SetMaximizedCommand, SetMinimizedCommand, SetPositionCommand,
-    SetPresentModeCommand, SetResizableCommand, SetResizeConstraintsCommand, SetResolutionCommand,
-    SetScaleFactorOverrideCommand, SetTitleCommand, SetWindowModeCommand, Window, WindowBundle,
-    WindowCanvas, WindowClosed, WindowCreated, WindowCurrentlyFocused, WindowCursor,
-    WindowCursorPosition, WindowDecorated, WindowHandle, WindowMaximized, WindowMinimized,
-    WindowModeComponent, WindowPosition, WindowPresentation, WindowResizable, WindowResolution,
-    WindowScaleFactorChanged, WindowTitle, WindowTransparent,
+    Cursor, CursorIcon, CursorPosition, PresentMode, Window, WindowBundle, WindowCanvas,
+    WindowClosed, WindowComponents, WindowCreated, WindowCurrentlyFocused, WindowDecorated,
+    WindowHandle, WindowMaximized, WindowMinimized, WindowMode, WindowPosition, WindowResizable,
+    WindowResizeConstraints, WindowResolution, WindowScaleFactorChanged, WindowTitle,
+    WindowTransparent,
 };
 use raw_window_handle::HasRawWindowHandle;
 use winit::{
-    dpi::{LogicalSize, PhysicalPosition},
+    dpi::{LogicalPosition, LogicalSize, PhysicalPosition},
     event_loop::{EventLoop, EventLoopWindowTarget},
 };
 
 use crate::{converters, get_best_videomode, get_fitting_videomode, WinitWindows};
 
-// TODO: Docs
-/// System responsible for creating new windows whenever the Event<CreateWindow> has been sent
-pub(crate) fn create_window_system(
+/// System responsible for creating new windows whenever a `Window` component is added
+/// to an entity.
+///
+/// This will default any necessary components if they are not already added.
+pub fn create_window_system(
     mut commands: Commands,
     mut event_loop: &EventLoopWindowTarget<()>,
-    mut create_window_commands: EventReader<CreateWindowCommand>,
-    mut window_created_events: EventWriter<WindowCreated>,
+    created_windows: Query<(Entity, WindowComponents), Added<Window>>,
     mut winit_windows: NonSendMut<WinitWindows>,
 ) {
-    info!("Creating primary window");
-    for event in create_window_commands.iter() {
-        info!("Creating window event");
-        // TODO: This should be about spawning the WinitWindow that corresponds
-        let winit_window =
-            winit_windows.create_window(&event_loop, event.entity, &event.descriptor);
+    for (window_entity, components) in &created_windows {
+        info!("Creating a new window");
 
-        let mut entity_commands = commands.entity(event.entity);
-
-        // Prepare data
-        let position = match winit_window
-            .outer_position()
-            .ok()
-            .map(|position| IVec2::new(position.x, position.y))
-        {
-            Some(position) => WindowPosition::At(position),
-            None => WindowPosition::Automatic,
-        };
-
-        let inner_size = winit_window.inner_size();
-
-        entity_commands.insert_bundle(WindowBundle {
-            window: Window,
-            handle: WindowHandle::new(winit_window.raw_window_handle()),
-            presentation: WindowPresentation::new(event.descriptor.present_mode),
-            mode: WindowModeComponent::new(event.descriptor.mode),
-            position,
-            resolution: WindowResolution::new(
-                event.descriptor.width,
-                event.descriptor.height,
-                inner_size.width,
-                inner_size.height,
-                event.descriptor.scale_factor_override,
-                winit_window.scale_factor(),
-            ),
-            title: WindowTitle::new(event.descriptor.title.clone()),
-            cursor_position: WindowCursorPosition::new(None),
-            cursor: WindowCursor::new(
-                CursorIcon::Default,
-                event.descriptor.cursor_visible,
-                event.descriptor.cursor_locked,
-            ),
-            canvas: WindowCanvas::new(
-                event.descriptor.canvas.clone(),
-                event.descriptor.fit_canvas_to_parent,
-            ),
-            resize_constraints: event.descriptor.resize_constraints,
-            // TODO: Are newly created windows considered focused by default?
-            focused: WindowCurrentlyFocused,
-        });
-
-        // Optional marker components
-        if event.descriptor.resizable {
-            entity_commands.insert(WindowResizable);
+        if let Some(_) = winit_windows.get_window(window_entity) {
+            // Just a safe guard
+            continue;
         }
 
-        if event.descriptor.decorations {
-            entity_commands.insert(WindowDecorated);
-        }
+        let winit_window = winit_windows.create_window(&event_loop, window_entity, &components);
 
-        if event.descriptor.transparent {
-            entity_commands.insert(WindowTransparent);
-        }
-
-        // TODO: Replace with separete `window_added`-system? See below
-        window_created_events.send(WindowCreated {
-            entity: event.entity,
-        });
+        commands
+            .entity(window_entity)
+            .insert(WindowHandle::new(winit_window.raw_window_handle()));
 
         // TODO: Fix this
         #[cfg(target_arch = "wasm32")]
@@ -122,420 +64,167 @@ pub(crate) fn create_window_system(
     }
 }
 
-// TODO: Docs
-/// System that sends a [`WindowCreated`] event once a new [`Window`] component has been created
-pub(crate) fn window_added(
-    q: Query<Entity, Added<Window>>,
-    mut writer: EventWriter<WindowCreated>,
-) {
-    for entity in q.iter() {
-        writer.send(WindowCreated { entity });
-    }
-}
-
-// TODO: Docs
-/// System responsible for destroying windows from commands
-pub(crate) fn destroy_windows(
-    mut commands: Commands,
-    mut close_window_writer: EventWriter<WindowClosed>,
-    mut winit_windows: NonSendMut<WinitWindows>,
-    mut command_reader: EventReader<CloseWindowCommand>,
-) {
-    for event in command_reader.iter() {
-        // Close the OS window. (The `Drop` impl actually closes the window)
-        let _ = winit_windows.remove_window(event.entity);
-
-        // Despawn the entity from the world
-        commands.entity(event.entity).despawn();
-
-        // Send event that the window has been closed
-        // TODO: Consider using the system below instead
-        close_window_writer.send(WindowClosed {
-            entity: event.entity,
-        });
-    }
-}
-
-// TODO: Docs
-// TODO: Not sure if this is correct / better
 /// System that detect that a window has been destroyed and sends an event as a result
 pub(crate) fn window_destroyed(
     removed: RemovedComponents<Window>,
-    mut writer: EventWriter<WindowClosed>,
+    winit_windows: NonSendMut<WinitWindows>,
 ) {
     for entity in removed.iter() {
-        writer.send(WindowClosed { entity });
-    }
-}
-
-// TODO: Docs
-pub(crate) fn update_title(
-    mut titles: Query<&mut WindowTitle, With<Window>>,
-    winit_windows: NonSendMut<WinitWindows>,
-    mut reader: EventReader<SetTitleCommand>,
-) {
-    for event in reader.iter() {
-        let winit_window = winit_windows.get_window(event.entity).unwrap();
-        // Set the winit title
-        winit_window.set_title(&event.title);
-        // Set the title in the component
-        if let Ok(mut window_title) = titles.get_mut(event.entity) {
-            // TODO: Remove the clone and somehow appease the borrow-checker instead
-            window_title.update_title_from_backend(event.title.clone());
-        } else {
-            panic!("No WindowTitle on the entity in question");
+        if let Some(mut winit_window) = winit_windows.get_window(entity) {
+            // TODO: Close window somehow
         }
     }
 }
 
 // TODO: Docs
-pub(crate) fn update_window_mode(
-    mut window_modes: Query<&mut WindowModeComponent, With<Window>>,
+pub fn update_title(
+    changed_windows: Query<(Entity, &WindowTitle), (With<Window>, Changed<WindowTitle>)>,
     winit_windows: NonSendMut<WinitWindows>,
-    mut command_reader: EventReader<SetWindowModeCommand>,
 ) {
-    for event in command_reader.iter() {
-        let winit_window = winit_windows.get_window(event.entity).unwrap();
+    for (entity, title) in changed_windows.iter() {
+        if let Some(mut winit_window) = winit_windows.get_window(entity) {
+            // Set the winit title
+            winit_window.set_title(title.as_str());
+        }
+    }
+}
 
-        // Update Winit Window
-        match event.mode {
-            bevy_window::WindowMode::BorderlessFullscreen => {
-                winit_window.set_fullscreen(Some(winit::window::Fullscreen::Borderless(None)));
+// TODO: Docs
+pub fn update_window_mode(
+    changed_windows: Query<
+        (Entity, &WindowMode, &WindowResolution),
+        (With<Window>, Changed<WindowMode>),
+    >,
+    winit_windows: NonSendMut<WinitWindows>,
+) {
+    for (entity, mode, resolution) in changed_windows.iter() {
+        if let Some(mut winit_window) = winit_windows.get_window(entity) {
+            match mode {
+                bevy_window::WindowMode::BorderlessFullscreen => {
+                    winit_window.set_fullscreen(Some(winit::window::Fullscreen::Borderless(None)));
+                }
+                bevy_window::WindowMode::Fullscreen => {
+                    winit_window.set_fullscreen(Some(winit::window::Fullscreen::Exclusive(
+                        get_best_videomode(&winit_window.current_monitor().unwrap()),
+                    )));
+                }
+                bevy_window::WindowMode::SizedFullscreen => winit_window.set_fullscreen(Some(
+                    winit::window::Fullscreen::Exclusive(get_fitting_videomode(
+                        &winit_window.current_monitor().unwrap(),
+                        resolution.width() as u32,
+                        resolution.height() as u32,
+                    )),
+                )),
+                bevy_window::WindowMode::Windowed => winit_window.set_fullscreen(None),
             }
-            bevy_window::WindowMode::Fullscreen => {
-                winit_window.set_fullscreen(Some(winit::window::Fullscreen::Exclusive(
-                    get_best_videomode(&winit_window.current_monitor().unwrap()),
-                )));
+        }
+    }
+}
+
+pub fn update_resolution(
+    changed_windows: Query<(Entity, &WindowResolution), (With<Window>, Changed<WindowResolution>)>,
+    winit_windows: NonSendMut<WinitWindows>,
+) {
+    for (entity, resolution) in changed_windows.iter() {
+        if let Some(winit_window) = winit_windows.get_window(entity) {
+            let physical_size = LogicalSize::new(resolution.width(), resolution.height())
+                .to_physical::<f64>(resolution.scale_factor());
+            winit_window.set_inner_size(physical_size);
+        }
+    }
+}
+
+pub fn update_cursor_position(
+    changed_windows: Query<(Entity, &CursorPosition), (With<Window>, Changed<CursorPosition>)>,
+    winit_windows: NonSendMut<WinitWindows>,
+) {
+    for (entity, cursor_position) in changed_windows.iter() {
+        if let Some(winit_window) = winit_windows.get_window(entity) {
+            if let Some(position) = cursor_position.position() {
+                let inner_size = winit_window
+                    .inner_size()
+                    .to_logical::<f64>(winit_window.scale_factor());
+
+                let position = LogicalPosition::new(position.x, inner_size.height - position.y);
+                winit_window.set_cursor_position(position);
             }
-            bevy_window::WindowMode::SizedFullscreen => {
-                let (width, height) = event.resolution;
-                winit_window.set_fullscreen(Some(winit::window::Fullscreen::Exclusive(
-                    get_fitting_videomode(&winit_window.current_monitor().unwrap(), width, height),
-                )))
+        }
+    }
+}
+
+pub fn update_cursor(
+    changed_windows: Query<(Entity, &Cursor), (With<Window>, Changed<Cursor>)>,
+    winit_windows: NonSendMut<WinitWindows>,
+) {
+    for (entity, cursor) in changed_windows.iter() {
+        if let Some(winit_window) = winit_windows.get_window(entity) {
+            winit_window.set_cursor_icon(converters::convert_cursor_icon(cursor.icon()));
+
+            winit_window
+                .set_cursor_grab(cursor.locked())
+                .unwrap_or_else(|e| error!("Unable to un/grab cursor: {}", e));
+
+            winit_window.set_cursor_visible(cursor.visible());
+        }
+    }
+}
+
+pub fn update_resize_constraints(
+    changed_windows: Query<
+        (Entity, &WindowResizeConstraints),
+        (With<Window>, Changed<WindowResizeConstraints>),
+    >,
+    winit_windows: NonSendMut<WinitWindows>,
+) {
+    for (entity, resize_constraints) in changed_windows.iter() {
+        if let Some(winit_window) = winit_windows.get_window(entity) {
+            let constraints = resize_constraints.check_constraints();
+            let min_inner_size = LogicalSize {
+                width: constraints.min_width,
+                height: constraints.min_height,
+            };
+            let max_inner_size = LogicalSize {
+                width: constraints.max_width,
+                height: constraints.max_height,
+            };
+
+            winit_window.set_min_inner_size(Some(min_inner_size));
+            if constraints.max_width.is_finite() && constraints.max_height.is_finite() {
+                winit_window.set_max_inner_size(Some(max_inner_size));
             }
-            bevy_window::WindowMode::Windowed => winit_window.set_fullscreen(None),
-        }
-
-        // Update components correspondinly
-        // TODO: Should also update resolution?
-        if let Ok(mut window_mode) = window_modes.get_mut(event.entity) {
-            window_mode.update_mode_from_backend(event.mode);
         }
     }
 }
 
-// TODO: Docs
-pub(crate) fn update_resolution(
-    mut components: Query<&mut WindowResolution, With<Window>>,
+pub fn update_present_mode(
+    changed_windows: Query<(Entity, &PresentMode), (With<Window>, Changed<PresentMode>)>,
     winit_windows: NonSendMut<WinitWindows>,
-    mut command_reader: EventReader<SetResolutionCommand>,
 ) {
-    for event in command_reader.iter() {
-        let winit_window = winit_windows.get_window(event.entity).unwrap();
-
-        let (width, height) = event.logical_resolution;
-
-        let physical_size =
-            winit::dpi::LogicalSize::new(width, height).to_physical::<f64>(event.scale_factor);
-
-        // Update Winit
-        winit_window.set_inner_size(physical_size);
-
-        // Update components
-        if let Ok(mut window_resolution) = components.get_mut(event.entity) {
-            // TODO: Is this casting f64 -> u32 correct / ok?
-            window_resolution.update_actual_size_from_backend(
-                physical_size.width as u32,
-                physical_size.height as u32,
-            );
-        } else {
-            // TODO: helpful panic comment
-            panic!();
+    for (entity, cursor) in changed_windows.iter() {
+        if let Some(winit_window) = winit_windows.get_window(entity) {
+            // Present mode is only relevant for the renderer, so no need to do anything to Winit at this point
         }
     }
 }
 
-// TODO: Docs
-pub(crate) fn update_cursor_position(
-    mut components: Query<&mut WindowCursorPosition, With<Window>>,
+pub fn update_window_position(
+    changed_windows: Query<(Entity, &WindowPosition), (With<Window>, Changed<WindowPosition>)>,
     winit_windows: NonSendMut<WinitWindows>,
-    mut command_reader: EventReader<SetCursorPositionCommand>,
 ) {
-    for event in command_reader.iter() {
-        let winit_window = winit_windows.get_window(event.entity).unwrap();
-
-        // Update Winit
-        // TODO: Fix type inconsitencies
-        let inner_size = winit_window
-            .inner_size()
-            .to_logical::<f64>(winit_window.scale_factor());
-
-        // This can take either a physical position (physical pixels <i32>)
-        // or logical position (logical pixels<f64>)
-        winit_window
-            .set_cursor_position(winit::dpi::LogicalPosition::new(
-                event.position.x,
-                inner_size.height - event.position.y,
-            ))
-            .unwrap_or_else(|e| error!("Unable to set cursor position: {}", e));
-
-        // Update components
-        if let Ok(mut cursor_position) = components.get_mut(event.entity) {
-            cursor_position.update_position_from_backend(Some(event.position));
-        } else {
-            // TODO: helpful panic comment
-            panic!();
-        }
-    }
-}
-
-// TODO: Docs
-// Does this need to be a command?
-// TODO: Check where this is actually being used
-pub(crate) fn update_resize_contraints(
-    winit_windows: NonSendMut<WinitWindows>,
-    mut command_reader: EventReader<SetResizeConstraintsCommand>,
-) {
-    for event in command_reader.iter() {
-        let winit_window = winit_windows.get_window(event.entity).unwrap();
-
-        // Update Winit
-        let constraints = event.resize_constraints.check_constraints();
-        let min_inner_size = LogicalSize {
-            width: constraints.min_width,
-            height: constraints.min_height,
-        };
-        let max_inner_size = LogicalSize {
-            width: constraints.max_width,
-            height: constraints.max_height,
-        };
-
-        winit_window.set_min_inner_size(Some(min_inner_size));
-        if constraints.max_width.is_finite() && constraints.max_height.is_finite() {
-            winit_window.set_max_inner_size(Some(max_inner_size));
-        }
-
-        // Update components
-    }
-}
-
-// TODO: Docs
-pub(crate) fn update_cursor_icon(
-    mut components: Query<&mut WindowCursor, With<Window>>,
-    winit_windows: NonSendMut<WinitWindows>,
-    mut command_reader: EventReader<SetCursorIconCommand>,
-) {
-    for event in command_reader.iter() {
-        let winit_window = winit_windows.get_window(event.entity).unwrap();
-
-        // Update Winit
-        winit_window.set_cursor_icon(converters::convert_cursor_icon(event.icon));
-
-        // Update components
-        if let Ok(mut window_cursor) = components.get_mut(event.entity) {
-            window_cursor.set_icon_from_backend(event.icon);
-        } else {
-            // TODO: helpful panic comment
-            panic!();
-        }
-    }
-}
-
-// TODO: Docs
-pub(crate) fn update_cursor_lock_mode(
-    mut components: Query<&mut WindowCursor, With<Window>>,
-    winit_windows: NonSendMut<WinitWindows>,
-    mut command_reader: EventReader<SetCursorLockModeCommand>,
-) {
-    for event in command_reader.iter() {
-        let winit_window = winit_windows.get_window(event.entity).unwrap();
-
-        // Update Winit
-        winit_window
-            .set_cursor_grab(event.locked)
-            .unwrap_or_else(|e| error!("Unable to un/grab cursor: {}", e));
-
-        // Update components
-        if let Ok(mut window_cursor) = components.get_mut(event.entity) {
-            window_cursor.set_locked_from_backend(event.locked);
-        } else {
-            // TODO: helpful panic comment
-            panic!();
-        }
-    }
-}
-
-// TODO: Docs
-pub(crate) fn update_cursor_visibility(
-    mut components: Query<&mut WindowCursor, With<Window>>,
-    winit_windows: NonSendMut<WinitWindows>,
-    mut command_reader: EventReader<SetCursorVisibilityCommand>,
-) {
-    for event in command_reader.iter() {
-        let winit_window = winit_windows.get_window(event.entity).unwrap();
-
-        // Update Winit
-        winit_window.set_cursor_visible(event.visible);
-
-        // Update components
-        if let Ok(mut window_cursor) = components.get_mut(event.entity) {
-            window_cursor.set_visible_from_backend(event.visible);
-        } else {
-            // TODO: helpful panic comment
-            panic!();
-        }
-    }
-}
-
-// TODO: Docs
-pub(crate) fn update_present_mode(
-    mut components: Query<&mut WindowPresentation, With<Window>>,
-    mut command_reader: EventReader<SetPresentModeCommand>,
-) {
-    for event in command_reader.iter() {
-        // Update Winit
-        // Present mode is only relevant for the renderer, so no need to do anything to Winit at this point
-
-        // Update components
-        if let Ok(mut window_presentation) = components.get_mut(event.entity) {
-            window_presentation.update_present_mode_from_backend(event.present_mode);
-        } else {
-            // TODO: helpful panic comment
-            panic!();
-        }
-    }
-}
-
-// TODO: Docs
-pub(crate) fn update_scale_factor_override(
-    mut components: Query<&mut WindowResolution, With<Window>>,
-    mut window_dpi_changed_events: EventWriter<WindowScaleFactorChanged>,
-    mut command_reader: EventReader<SetScaleFactorOverrideCommand>,
-) {
-    for event in command_reader.iter() {
-        // TODO: Implement and verify behaviour here
-        // window_dpi_changed_events.send(WindowScaleFactorChanged {
-        //     entity: event.entity,
-        //     scale_factor: event.scale_factor,
-        // });
-
-        if let Ok(mut window_resolution) = components.get_mut(event.entity) {
-            // TODO: Should this be scale_factor_override instead?
-            window_resolution.update_scale_factor_override(event.scale_factor);
-        } else {
-            // TODO: Helpful panic comment
-            panic!();
-        }
-    }
-}
-
-// TODO: Docs
-// TODO: What happens if you try to apply decorations on something that already has decorations, or vice versa?
-pub(crate) fn update_decorations(
-    mut commands: Commands,
-    winit_windows: NonSendMut<WinitWindows>,
-    mut command_reader: EventReader<SetDecorationsCommand>,
-) {
-    for event in command_reader.iter() {
-        let winit_window = winit_windows.get_window(event.entity).unwrap();
-        winit_window.set_decorations(event.decorations);
-
-        if event.decorations {
-            // Add decoratiosn marker
-            commands.entity(event.entity).insert(WindowDecorated);
-        } else {
-            // remove decoration marker
-            commands.entity(event.entity).remove::<WindowDecorated>();
-        }
-    }
-}
-
-// TODO: Docs
-// TODO: What happens if you try to apply resizable on something that already is resizable, or vice versa?
-pub(crate) fn update_resizable(
-    mut commands: Commands,
-    winit_windows: NonSendMut<WinitWindows>,
-    mut command_reader: EventReader<SetResizableCommand>,
-) {
-    for event in command_reader.iter() {
-        let winit_window = winit_windows.get_window(event.entity).unwrap();
-
-        winit_window.set_resizable(event.resizable);
-
-        if event.resizable {
-            // Add marker
-            commands.entity(event.entity).insert(WindowResizable);
-        } else {
-            // remove marker
-            commands.entity(event.entity).remove::<WindowResizable>();
-        }
-    }
-}
-
-// TODO: Docs
-pub(crate) fn update_position(
-    mut components: Query<&mut WindowPosition, With<Window>>,
-    winit_windows: NonSendMut<WinitWindows>,
-    mut command_reader: EventReader<SetPositionCommand>,
-) {
-    for event in command_reader.iter() {
-        let winit_window = winit_windows.get_window(event.entity).unwrap();
-
-        winit_window.set_outer_position(PhysicalPosition {
-            x: event.position[0],
-            y: event.position[1],
-        });
-
-        // TODO: When will position be Option<> ?
-        if let Ok(mut comp) = components.get_mut(event.entity) {
-            comp.update_actual_position_from_backend(event.position);
-        } else {
-            // TODO: helpful panic comment
-            panic!()
-        }
-    }
-}
-
-// TODO: Docs
-// TODO: What happens if you try to apply minimize on something that already is minimized, or vice versa?
-pub(crate) fn update_minimized(
-    mut commands: Commands,
-    winit_windows: NonSendMut<WinitWindows>,
-    mut command_reader: EventReader<SetMinimizedCommand>,
-) {
-    for event in command_reader.iter() {
-        let winit_window = winit_windows.get_window(event.entity).unwrap();
-
-        winit_window.set_minimized(event.minimized);
-
-        if event.minimized {
-            // Add marker
-            commands.entity(event.entity).insert(WindowMinimized);
-        } else {
-            // remove marker
-            commands.entity(event.entity).remove::<WindowMinimized>();
-        }
-    }
-}
-
-// TODO: Docs
-// TODO: What happens if you try to apply maximize on something that already is maximized, or vice versa?
-pub(crate) fn update_maximized(
-    mut commands: Commands,
-    winit_windows: NonSendMut<WinitWindows>,
-    mut command_reader: EventReader<SetMaximizedCommand>,
-) {
-    for event in command_reader.iter() {
-        let winit_window = winit_windows.get_window(event.entity).unwrap();
-
-        winit_window.set_maximized(event.maximized);
-
-        if event.maximized {
-            // Add marker
-            commands.entity(event.entity).insert(WindowMaximized);
-        } else {
-            // remove marker
-            commands.entity(event.entity).remove::<WindowMaximized>();
+    for (entity, position) in changed_windows.iter() {
+        if let Some(winit_window) = winit_windows.get_window(entity) {
+            match position {
+                WindowPosition::At(position) => {
+                    winit_window.set_outer_position(PhysicalPosition {
+                        x: position[0],
+                        y: position[1],
+                    });
+                }
+                WindowPosition::Automatic => {}
+                WindowPosition::Centered(monitor) => {
+                    // TODO: figure out what to do here if anything
+                }
+            }
         }
     }
 }
