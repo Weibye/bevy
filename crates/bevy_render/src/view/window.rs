@@ -200,10 +200,8 @@ pub fn prepare_windows(
             },
         };
 
-        //println!("window: {:?}", window.id);
         // Do the initial surface configuration if it hasn't been configured yet
         if window_surfaces.configured_windows.insert(window.id) || window.size_changed {
-            println!("window changed");
             render_device.configure_surface(surface, &swap_chain_descriptor);
         }
 
