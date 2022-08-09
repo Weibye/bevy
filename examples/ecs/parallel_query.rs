@@ -47,7 +47,7 @@ fn bounce_system(
     mut sprites: Query<(&Transform, &mut Velocity)>,
 ) {
     let resolution = resolutions
-        .get(primary_window.window.expect("Primary window should exist"))
+        .get(primary_window.window)
         .expect("Primary windows should have a valid WindowResolution component");
     let width = resolution.width();
     let height = resolution.height();

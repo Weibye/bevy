@@ -274,7 +274,7 @@ pub fn extract_text_uinodes(
     mut extracted_uinodes: ResMut<ExtractedUiNodes>,
     texture_atlases: Extract<Res<Assets<TextureAtlas>>>,
     text_pipeline: Extract<Res<DefaultTextPipeline>>,
-    primary_window: Extract<Option<Res<PrimaryWindow>>>,
+    primary_window: Extract<Res<PrimaryWindow>>,
     windows: Extract<Query<&WindowResolution, With<Window>>>,
     uinode_query: Extract<
         Query<(
@@ -288,12 +288,7 @@ pub fn extract_text_uinodes(
     >,
 ) {
     let resolution = windows
-        .get(
-            primary_window
-                .as_ref()
-                .expect("Primary window should exist")
-                .window,
-        )
+        .get(primary_window.window)
         .expect("Primary windows should have a valid WindowResolution component");
     let scale_factor = resolution.scale_factor() as f32;
 

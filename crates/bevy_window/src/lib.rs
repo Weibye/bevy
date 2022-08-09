@@ -73,6 +73,22 @@ pub struct WindowPlugin;
 
 impl Plugin for WindowPlugin {
     fn build(&self, app: &mut App) {
+        app.register_type::<Window>()
+            .register_type::<Cursor>()
+            .register_type::<CursorPosition>()
+            .register_type::<WindowResolution>()
+            .register_type::<WindowPosition>()
+            .register_type::<WindowMode>()
+            .register_type::<PresentMode>()
+            .register_type::<WindowTitle>()
+            .register_type::<WindowState>()
+            .register_type::<WindowCanvas>()
+            .register_type::<Window>()
+            .register_type::<WindowDecorations>()
+            .register_type::<WindowTransparency>()
+            .register_type::<WindowResizable>()
+            .register_type::<WindowResizeConstraints>();
+
         app.add_event::<WindowResized>()
             .add_event::<WindowCreated>()
             .add_event::<WindowClosed>()
@@ -129,7 +145,7 @@ impl Plugin for WindowPlugin {
         }
 
         if settings.close_when_requested {
-            app.add_system(close_when_requested);
+            app.add_system_to_stage(CoreStage::First, close_when_requested);
         }
     }
 }

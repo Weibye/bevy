@@ -11,8 +11,8 @@ use bevy_reflect::{FromReflect, Reflect};
 use bevy_utils::{tracing::warn, Uuid};
 use raw_window_handle::RawWindowHandle;
 
+use crate::raw_window_handle::RawWindowHandleWrapper;
 use crate::CursorIcon;
-use crate::{raw_window_handle::RawWindowHandleWrapper, WindowFocused};
 
 /// Presentation mode for a window.
 ///
@@ -96,6 +96,7 @@ pub struct WindowBundle {
     pub resizable: WindowResizable,
     pub decorations: WindowDecorations,
     pub transparency: WindowTransparency,
+    pub focus: WindowFocus,
 }
 
 #[derive(WorldQuery)]
@@ -113,6 +114,26 @@ pub struct WindowComponents<'a> {
     pub resizable: &'a WindowResizable,
     pub decorations: &'a WindowDecorations,
     pub transparency: &'a WindowTransparency,
+    pub focus: &'a WindowFocus,
+}
+
+#[derive(WorldQuery)]
+#[world_query(mutable)]
+pub struct WindowComponentsMut<'a> {
+    pub entity: Entity,
+    pub window: &'a mut Window,
+    pub cursor: &'a mut Cursor,
+    pub cursor_position: &'a mut CursorPosition,
+    pub present_mode: &'a mut PresentMode,
+    pub window_mode: &'a mut WindowMode,
+    pub position: &'a mut WindowPosition,
+    pub resolution: &'a mut WindowResolution,
+    pub title: &'a mut WindowTitle,
+    pub resize_constraints: &'a mut WindowResizeConstraints,
+    pub resizable: &'a mut WindowResizable,
+    pub decorations: &'a mut WindowDecorations,
+    pub transparency: &'a mut WindowTransparency,
+    pub focus: &'a mut WindowFocus,
 }
 
 /// The size limits on a window.
@@ -523,9 +544,25 @@ impl WindowDecorations {
     }
 }
 
-#[derive(Default, Component, Debug, Copy, Clone, PartialEq, Eq, Reflect)]
+#[derive(Component, Debug, Copy, Clone, PartialEq, Eq, Reflect)]
 #[reflect(Component)]
-pub struct WindowCurrentlyFocused;
+pub struct WindowFocus(bool);
+
+impl Default for WindowFocus {
+    fn default() -> Self {
+        WindowFocus(false) // more explicitly we aren't focused by default
+    }
+}
+
+impl WindowFocus {
+    pub fn focused(&self) -> bool {
+        self.0
+    }
+
+    pub fn set(&mut self, focused: bool) {
+        self.0 = focused;
+    }
+}
 
 #[derive(Default, Component, Debug, Copy, Clone, PartialEq, Eq, Reflect)]
 #[reflect(Component)]

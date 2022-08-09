@@ -7,15 +7,12 @@ mod winit_windows;
 
 use core::panic;
 
-use bevy_ecs::system::{Command, Insert, InsertBundle, SystemParam, SystemState};
-use raw_window_handle::HasRawWindowHandle;
+use bevy_ecs::system::{SystemParam, SystemState};
 use system::{
-    create_window_system, update_cursor, update_cursor_position, update_present_mode,
-    update_resize_constraints, update_resolution, update_title, update_window_mode,
-    update_window_position, window_destroyed,
+    create_window_system, update_cursor, update_cursor_position, update_resize_constraints,
+    update_resolution, update_title, update_window_mode, update_window_position, window_destroyed,
 };
 
-use winit::event_loop;
 pub use winit_config::*;
 pub use winit_windows::*;
 
@@ -27,16 +24,16 @@ use bevy_input::{
     mouse::{MouseButtonInput, MouseMotion, MouseScrollUnit, MouseWheel},
     touch::TouchInput,
 };
-use bevy_math::{ivec2, DVec2, IVec2, Vec2};
+use bevy_math::{ivec2, DVec2, Vec2};
 use bevy_utils::{
-    tracing::{error, info, trace, warn},
+    tracing::{trace, warn},
     Instant,
 };
 use bevy_window::{
-    CursorEntered, CursorLeft, CursorMoved, CursorPosition, FileDragAndDrop, ModifiesWindows,
-    PrimaryWindow, ReceivedCharacter, RequestRedraw, Window, WindowBackendScaleFactorChanged,
-    WindowCloseRequested, WindowComponents, WindowCurrentlyFocused, WindowFocused, WindowMoved,
-    WindowPosition, WindowResized, WindowResolution, WindowScaleFactorChanged,
+    CursorEntered, CursorLeft, CursorMoved, FileDragAndDrop, ModifiesWindows, ReceivedCharacter,
+    RequestRedraw, Window, WindowBackendScaleFactorChanged, WindowCloseRequested, WindowComponents,
+    WindowComponentsMut, WindowFocus, WindowFocused, WindowMoved, WindowResized,
+    WindowScaleFactorChanged,
 };
 
 use winit::{
@@ -66,9 +63,10 @@ impl Plugin for WinitPlugin {
                     .with_system(update_resolution)
                     .with_system(update_cursor)
                     .with_system(update_cursor_position)
-                    .with_system(update_resize_constraints)
-                    .with_system(update_present_mode),
-            );
+                    .with_system(update_resize_constraints),
+            )
+            .add_system_to_stage(CoreStage::Last, window_destroyed);
+
         #[cfg(target_arch = "wasm32")]
         app.add_plugin(web_resize::CanvasParentResizePlugin);
 
@@ -80,7 +78,7 @@ impl Plugin for WinitPlugin {
         )> = SystemState::from_world(&mut app.world);
 
         {
-            let (mut commands, mut event_loop, new_windows, mut winit_windows) =
+            let (commands, event_loop, new_windows, winit_windows) =
                 system_state.get_mut(&mut app.world);
 
             // Here we need to create a winit-window and give it a WindowHandle which the renderer can use.
@@ -134,10 +132,6 @@ where
     F: FnMut(Event<'_, ()>, &EventLoopWindowTarget<()>, &mut ControlFlow),
 {
     panic!("Run return is not supported on this platform!")
-}
-
-pub fn winit_runner(app: App) {
-    winit_runner_with(app);
 }
 
 #[derive(SystemParam)]
@@ -207,7 +201,7 @@ impl Default for WinitPersistentState {
 // struct WinitCreateWindowReader(ManualEventReader<CreateWindow>);
 
 // TODO: Refactor this to work with new pattern
-pub fn winit_runner_with(mut app: App) {
+pub fn winit_runner(mut app: App) {
     // TODO: Understand what removing and adding this does
     let mut event_loop = app
         .world
@@ -233,25 +227,31 @@ pub fn winit_runner_with(mut app: App) {
         Query<(Entity, WindowComponents), Added<Window>>,
         NonSendMut<WinitWindows>,
         Res<WinitSettings>,
-        Query<Entity, (With<Window>, With<WindowCurrentlyFocused>)>,
+        Query<&WindowFocus, With<Window>>,
     )> = SystemState::from_world(&mut app.world);
 
     let event_handler = move |event: Event<()>,
                               event_loop: &EventLoopWindowTarget<()>,
                               control_flow: &mut ControlFlow| {
-        // TODO move all system state fetch up here?
+        if let Some(app_exit_events) = app.world.get_resource::<Events<AppExit>>() {
+            if app_exit_event_reader.iter(app_exit_events).last().is_some() {
+                *control_flow = ControlFlow::Exit;
+                return;
+            }
+        }
 
         match event {
             event::Event::NewEvents(start) => {
                 // Fetch from the world
                 let mut system_state: SystemState<(
                     Res<WinitSettings>,
-                    Query<Entity, (With<WindowCurrentlyFocused>, With<Window>)>,
+                    Query<&WindowFocus, With<Window>>,
                 )> = SystemState::new(&mut app.world);
 
                 let (winit_config, window_focused_query) = system_state.get(&mut app.world);
 
-                let any_window_focused = !window_focused_query.is_empty();
+                let any_window_focused =
+                    window_focused_query.iter().any(|focused| focused.focused());
 
                 // Check if either the `WaitUntil` timeout was triggered by winit, or that same
                 // amount of time has elapsed since the last app update. This manual check is needed
@@ -277,28 +277,16 @@ pub fn winit_runner_with(mut app: App) {
             } => {
                 // Fetch and prepare details from the world
                 let mut system_state: SystemState<(
-                    Commands,
                     NonSend<WinitWindows>,
-                    Query<
-                        (
-                            Entity,
-                            &mut WindowResolution,
-                            &mut CursorPosition,
-                            &mut WindowPosition,
-                        ),
-                        With<Window>,
-                    >,
-                    Option<Res<PrimaryWindow>>,
+                    Query<WindowComponentsMut, With<Window>>,
                     WindowEvents,
                     InputEvents,
                     CursorEvents,
                     EventWriter<FileDragAndDrop>,
                 )> = SystemState::new(&mut app.world);
                 let (
-                    mut commands,
                     winit_windows,
                     mut window_query,
-                    primary_window,
                     mut window_events,
                     mut input_events,
                     mut cursor_events,
@@ -319,31 +307,39 @@ pub fn winit_runner_with(mut app: App) {
                     };
 
                 // Reference to the Winit-window
-                let winit_window = winit_windows.get_window(window_entity).unwrap();
+                let winit_window = if let Some(window) = winit_windows.get_window(window_entity) {
+                    window
+                } else {
+                    warn!(
+                        "Skipped event for non-existent Winit Window Id {:?}",
+                        winit_window_id
+                    );
+                    return;
+                };
 
-                // TODO: Is there an edge-case introduced by removing this?
-                // let window = if let Some(window) = windows.get_mut(window_entity) {
-                //     window
-                // } else {
-                //     // If we're here, this window was previously opened
-                //     info!("Skipped event for closed window: {:?}", window_entity);
-                //     return;
-                // };
+                if window_query.get(window_entity).is_err() {
+                    warn!(
+                        "Skipped event for non-existent Window Id {:?}",
+                        winit_window_id
+                    );
+                    return;
+                }
+
                 winit_state.low_power_event = true;
 
                 match event {
                     WindowEvent::Resized(size) => {
-                        if let Ok((_, mut resolution_component, _, _)) =
-                            window_query.get_mut(window_entity)
-                        {
+                        if let Ok(mut window) = window_query.get_mut(window_entity) {
                             // Update component
-                            resolution_component.set_physical_resolution(size.width, size.height);
+                            window
+                                .resolution
+                                .set_physical_resolution(size.width, size.height);
 
                             // Send event to notify change
                             window_events.window_resized.send(WindowResized {
                                 entity: window_entity,
-                                width: resolution_component.width(),
-                                height: resolution_component.height(),
+                                width: window.resolution.width(),
+                                height: window.resolution.height(),
                             });
                         } else {
                             // TODO: Helpful panic comment
@@ -363,27 +359,31 @@ pub fn winit_runner_with(mut app: App) {
                             .send(converters::convert_keyboard_input(input));
                     }
                     WindowEvent::CursorMoved { position, .. } => {
-                        // let winit_window = winit_windows.get_window(window_entity).unwrap();
                         let inner_size = winit_window.inner_size();
 
-                        // Components
-                        let (_, window_resolution, mut window_cursor_position, _) =
-                            window_query.get_mut(window_entity).expect("msg");
+                        if let Ok(mut window) = window_query.get_mut(window_entity) {
+                            // Components
 
-                        // TODO: Why is this necessary? Improve comment as to why
-                        // move origin to bottom left
-                        let y_position = inner_size.height as f64 - position.y;
+                            // TODO: Why is this necessary? Improve comment as to why
+                            // move origin to bottom left
+                            let y_position = inner_size.height as f64 - position.y;
 
-                        let physical_position = DVec2::new(position.x, y_position);
+                            let physical_position = DVec2::new(position.x, y_position);
 
-                        window_cursor_position.set(Some(physical_position));
+                            window.cursor_position.set(Some(physical_position));
 
-                        // Event
-                        cursor_events.cursor_moved.send(CursorMoved {
-                            entity: window_entity,
-                            position: (physical_position / window_resolution.scale_factor())
-                                .as_vec2(),
-                        });
+                            // Event
+                            cursor_events.cursor_moved.send(CursorMoved {
+                                entity: window_entity,
+                                position: (physical_position / window.resolution.scale_factor())
+                                    .as_vec2(),
+                            });
+                        } else {
+                            warn!(
+                                "could not set cursor position of window: {:?}",
+                                window_entity
+                            );
+                        }
                     }
                     WindowEvent::CursorEntered { .. } => {
                         cursor_events.cursor_entered.send(CursorEntered {
@@ -392,15 +392,19 @@ pub fn winit_runner_with(mut app: App) {
                     }
                     WindowEvent::CursorLeft { .. } => {
                         // Component
-                        let (_, _, mut window_cursor_position, _) = window_query
-                            .get_mut(window_entity)
-                            .expect("Window should have a WindowCursorComponent component");
-                        window_cursor_position.set(None);
+                        if let Ok(mut window) = window_query.get_mut(window_entity) {
+                            window.cursor_position.set(None);
 
-                        // Event
-                        cursor_events.cursor_left.send(CursorLeft {
-                            entity: window_entity,
-                        });
+                            // Event
+                            cursor_events.cursor_left.send(CursorLeft {
+                                entity: window_entity,
+                            });
+                        } else {
+                            warn!(
+                                "could not set cursor position of window: {:?}",
+                                window_entity
+                            );
+                        }
                     }
                     WindowEvent::MouseInput { state, button, .. } => {
                         input_events.mouse_button_input.send(MouseButtonInput {
@@ -425,30 +429,26 @@ pub fn winit_runner_with(mut app: App) {
                         }
                     },
                     WindowEvent::Touch(touch) => {
-                        let (_, window_resolution, _, _) = window_query
-                            .get(window_entity)
-                            .expect("Window should have a WindowResolution component");
+                        if let Ok(window) = window_query.get(window_entity) {
+                            let mut location =
+                                touch.location.to_logical(window.resolution.scale_factor());
 
-                        let mut location =
-                            touch.location.to_logical(window_resolution.scale_factor());
+                            // On a mobile window, the start is from the top while on PC/Linux/OSX from
+                            // bottom
+                            if cfg!(target_os = "android") || cfg!(target_os = "ios") {
+                                location.y = window.resolution.height() - location.y;
+                            }
 
-                        // On a mobile window, the start is from the top while on PC/Linux/OSX from
-                        // bottom
-                        if cfg!(target_os = "android") || cfg!(target_os = "ios") {
-                            // Get windows_resolution of the entity currently set as primary window
-                            let primary_window_id =
-                                primary_window.expect("Primary window should exist").window;
-                            let (_, primary_window_resolution, _, _) =
-                                window_query.get(primary_window_id).expect(
-                                    "Primary window should have a valid WindowResolution component",
-                                );
-                            location.y = primary_window_resolution.height() - location.y;
+                            // Event
+                            input_events
+                                .touch_input
+                                .send(converters::convert_touch_input(touch, location));
+                        } else {
+                            warn!(
+                                "could not get resolution for touch event on window: {:?}",
+                                window_entity
+                            );
                         }
-
-                        // Event
-                        input_events
-                            .touch_input
-                            .send(converters::convert_touch_input(touch, location));
                     }
                     WindowEvent::ReceivedCharacter(c) => {
                         input_events.character_input.send(ReceivedCharacter {
@@ -468,22 +468,22 @@ pub fn winit_runner_with(mut app: App) {
                         );
 
                         // Components
-                        let (_, mut window_resolution, _, _) = window_query
+                        let mut window = window_query
                             .get_mut(window_entity)
-                            .expect("Window should have a WindowResolution component");
+                            .expect("expected window components");
 
-                        let prior_factor = window_resolution.scale_factor();
-                        window_resolution.set_scale_factor(scale_factor);
-                        let new_factor = window_resolution.scale_factor();
+                        let prior_factor = window.resolution.scale_factor();
+                        window.resolution.set_scale_factor(scale_factor);
+                        let new_factor = window.resolution.scale_factor();
 
-                        if let Some(forced_factor) = window_resolution.scale_factor_override() {
+                        if let Some(forced_factor) = window.resolution.scale_factor_override() {
                             // If there is a scale factor override, then force that to be used
                             // Otherwise, use the OS suggested size
                             // We have already told the OS about our resize constraints, so
                             // the new_inner_size should take those into account
                             *new_inner_size = winit::dpi::LogicalSize::new(
-                                window_resolution.requested_width(),
-                                window_resolution.requested_height(),
+                                window.resolution.requested_width(),
+                                window.resolution.requested_height(),
                             )
                             .to_physical::<u32>(forced_factor);
                             // TODO: Should this not trigger a WindowsScaleFactorChanged?
@@ -499,8 +499,8 @@ pub fn winit_runner_with(mut app: App) {
 
                         let new_logical_width = new_inner_size.width as f64 / new_factor;
                         let new_logical_height = new_inner_size.height as f64 / new_factor;
-                        if approx::relative_ne!(window_resolution.width(), new_logical_width)
-                            || approx::relative_ne!(window_resolution.height(), new_logical_height)
+                        if approx::relative_ne!(window.resolution.width(), new_logical_width)
+                            || approx::relative_ne!(window.resolution.height(), new_logical_height)
                         {
                             window_events.window_resized.send(WindowResized {
                                 entity: window_entity,
@@ -508,20 +508,17 @@ pub fn winit_runner_with(mut app: App) {
                                 height: new_logical_height,
                             });
                         }
-                        window_resolution
+                        window
+                            .resolution
                             .set_physical_resolution(new_inner_size.width, new_inner_size.height);
                     }
                     WindowEvent::Focused(focused) => {
+                        let mut window = window_query
+                            .get_mut(window_entity)
+                            .expect("expected window components");
+
                         // Component
-                        if focused {
-                            commands
-                                .entity(window_entity)
-                                .insert(WindowCurrentlyFocused);
-                        } else {
-                            commands
-                                .entity(window_entity)
-                                .remove::<WindowCurrentlyFocused>();
-                        }
+                        window.focus.set(focused);
 
                         // Event
                         window_events.window_focused.send(WindowFocused {
@@ -550,10 +547,12 @@ pub fn winit_runner_with(mut app: App) {
                         let position = ivec2(position.x, position.y);
 
                         // Component
-                        let (_, _, _, mut window_position) = window_query
+                        let mut window = window_query
                             .get_mut(window_entity)
                             .expect("Window should have a WindowPosition component");
-                        window_position.update_actual_position_from_backend(position);
+                        window
+                            .position
+                            .update_actual_position_from_backend(position);
 
                         // Event
                         window_events.window_moved.send(WindowMoved {
@@ -592,7 +591,7 @@ pub fn winit_runner_with(mut app: App) {
                 let update = if winit_state.active {
                     // True if _any_ windows are currently being focused
                     // TODO: Do we need to fetch windows again since new ones might have been created and they might be focused?
-                    let focused = !window_focused_query.is_empty();
+                    let focused = window_focused_query.iter().any(|focused| focused.focused());
                     match winit_config.update_mode(focused) {
                         UpdateMode::Continuous | UpdateMode::Reactive { .. } => true,
                         UpdateMode::ReactiveLowPower { .. } => {
@@ -604,6 +603,7 @@ pub fn winit_runner_with(mut app: App) {
                 } else {
                     false
                 };
+
                 if update {
                     winit_state.last_update = Instant::now();
                     app.update();
@@ -614,13 +614,13 @@ pub fn winit_runner_with(mut app: App) {
                     // Fetch from world
                     let mut system_state: SystemState<(
                         Res<WinitSettings>,
-                        Query<Entity, (With<Window>, With<WindowCurrentlyFocused>)>,
+                        Query<&WindowFocus, With<Window>>,
                     )> = SystemState::new(&mut app.world);
 
                     let (winit_config, window_focused_query) = system_state.get(&mut app.world);
 
                     // True if _any_ windows are currently being focused
-                    let focused = !window_focused_query.is_empty();
+                    let focused = window_focused_query.iter().any(|focused| focused.focused());
 
                     let now = Instant::now();
                     use UpdateMode::*;
@@ -646,11 +646,7 @@ pub fn winit_runner_with(mut app: App) {
                         redraw = true;
                     }
                 }
-                if let Some(app_exit_events) = app.world.get_resource::<Events<AppExit>>() {
-                    if app_exit_event_reader.iter(app_exit_events).last().is_some() {
-                        *control_flow = ControlFlow::Exit;
-                    }
-                }
+
                 winit_state.redraw_request_sent = redraw;
             }
             _ => (),

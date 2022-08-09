@@ -1,24 +1,18 @@
 use bevy_ecs::{
-    component::TableStorage,
     entity::Entity,
-    event::{EventReader, EventWriter},
-    prelude::{Added, Changed, Component, With, World},
-    system::{
-        Command, Commands, Insert, InsertBundle, NonSendMut, Query, RemovedComponents, SystemState,
-    },
+    event::EventReader,
+    prelude::{Added, Changed, With},
+    system::{Commands, Local, NonSendMut, Query, Res},
 };
-use bevy_math::IVec2;
 use bevy_utils::tracing::{error, info};
 use bevy_window::{
-    Cursor, CursorIcon, CursorPosition, PresentMode, Window, WindowBundle, WindowCanvas,
-    WindowClosed, WindowComponents, WindowCreated, WindowCurrentlyFocused, WindowDecorations,
-    WindowHandle, WindowMode, WindowPosition, WindowResizable, WindowResizeConstraints,
-    WindowResolution, WindowScaleFactorChanged, WindowState, WindowTitle, WindowTransparency,
+    Cursor, CursorPosition, PrimaryWindow, Window, WindowClosed, WindowComponents, WindowHandle,
+    WindowMode, WindowPosition, WindowResizeConstraints, WindowResolution, WindowTitle,
 };
 use raw_window_handle::HasRawWindowHandle;
 use winit::{
     dpi::{LogicalPosition, LogicalSize, PhysicalPosition},
-    event_loop::{EventLoop, EventLoopWindowTarget},
+    event_loop::EventLoopWindowTarget,
 };
 
 use crate::{converters, get_best_videomode, get_fitting_videomode, WinitWindows};
@@ -64,32 +58,45 @@ pub fn create_window_system(
     }
 }
 
-/// System that detect that a window has been destroyed and sends an event as a result
-pub(crate) fn window_destroyed(
-    removed: RemovedComponents<Window>,
-    winit_windows: NonSendMut<WinitWindows>,
+#[derive(Default, Debug, Clone)]
+pub struct RemoveWindowBuffer {
+    remove: Vec<Entity>,
+}
+
+pub fn window_destroyed(
+    mut commands: Commands,
+    primary: Res<PrimaryWindow>,
+    mut closed: EventReader<WindowClosed>,
+    mut winit_windows: NonSendMut<WinitWindows>,
+    mut buffer: Local<RemoveWindowBuffer>,
 ) {
-    for entity in removed.iter() {
-        if let Some(mut winit_window) = winit_windows.get_window(entity) {
-            // TODO: Close window somehow
+    for entity in buffer.remove.drain(..) {
+        winit_windows.remove_window(entity);
+
+        commands.entity(entity).despawn();
+        if primary.window == entity {
+            commands.remove_resource::<PrimaryWindow>();
         }
+    }
+
+    // We buffer for a frame so that other systems clean up first
+    // regardless of ordering.
+    for event in closed.iter() {
+        buffer.remove.push(event.entity);
     }
 }
 
-// TODO: Docs
 pub fn update_title(
     changed_windows: Query<(Entity, &WindowTitle), (With<Window>, Changed<WindowTitle>)>,
     winit_windows: NonSendMut<WinitWindows>,
 ) {
     for (entity, title) in changed_windows.iter() {
-        if let Some(mut winit_window) = winit_windows.get_window(entity) {
-            // Set the winit title
+        if let Some(winit_window) = winit_windows.get_window(entity) {
             winit_window.set_title(title.as_str());
         }
     }
 }
 
-// TODO: Docs
 pub fn update_window_mode(
     changed_windows: Query<
         (Entity, &WindowMode, &WindowResolution),
@@ -98,7 +105,7 @@ pub fn update_window_mode(
     winit_windows: NonSendMut<WinitWindows>,
 ) {
     for (entity, mode, resolution) in changed_windows.iter() {
-        if let Some(mut winit_window) = winit_windows.get_window(entity) {
+        if let Some(winit_window) = winit_windows.get_window(entity) {
             match mode {
                 bevy_window::WindowMode::BorderlessFullscreen => {
                     winit_window.set_fullscreen(Some(winit::window::Fullscreen::Borderless(None)));
@@ -146,7 +153,9 @@ pub fn update_cursor_position(
                     .to_logical::<f64>(winit_window.scale_factor());
 
                 let position = LogicalPosition::new(position.x, inner_size.height - position.y);
-                winit_window.set_cursor_position(position);
+                if let Err(err) = winit_window.set_cursor_position(position) {
+                    error!("could not set cursor position: {:?}", err);
+                }
             }
         }
     }
@@ -192,17 +201,6 @@ pub fn update_resize_constraints(
             if constraints.max_width.is_finite() && constraints.max_height.is_finite() {
                 winit_window.set_max_inner_size(Some(max_inner_size));
             }
-        }
-    }
-}
-
-pub fn update_present_mode(
-    changed_windows: Query<(Entity, &PresentMode), (With<Window>, Changed<PresentMode>)>,
-    winit_windows: NonSendMut<WinitWindows>,
-) {
-    for (entity, cursor) in changed_windows.iter() {
-        if let Some(winit_window) = winit_windows.get_window(entity) {
-            // Present mode is only relevant for the renderer, so no need to do anything to Winit at this point
         }
     }
 }

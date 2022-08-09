@@ -67,7 +67,7 @@ pub struct State {
 /// Entities with a hidden [`ComputedVisibility`] are always treated as released.
 pub fn ui_focus_system(
     mut state: Local<State>,
-    primary_window: Option<Res<PrimaryWindow>>,
+    primary_window: Res<PrimaryWindow>,
     cursor_positions: Query<&CursorPosition, With<Window>>,
     mouse_button_input: Res<Input<MouseButton>>,
     touches_input: Res<Touches>,
@@ -81,10 +81,7 @@ pub fn ui_focus_system(
         Option<&ComputedVisibility>,
     )>,
 ) {
-    let primary_window_id = primary_window
-        .as_ref()
-        .expect("Primary window should exist")
-        .window;
+    let primary_window_id = primary_window.as_ref().window;
 
     let cursor_position = cursor_positions
         .get(primary_window_id)

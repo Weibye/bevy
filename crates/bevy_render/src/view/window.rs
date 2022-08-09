@@ -80,6 +80,7 @@ pub fn extract_windows(
     extracted_windows.primary = primary.as_ref().map(|primary| primary.window);
 
     for (entity, resolution, handle, present_mode) in windows.iter() {
+        //println!("extracting window: {:?}", entity);
         let (new_width, new_height) = (
             resolution.physical_width().max(1),
             resolution.physical_height().max(1),
@@ -112,6 +113,7 @@ pub fn extract_windows(
             extracted_window.physical_height = new_height;
         }
     }
+
     for closed_window in closed.iter() {
         extracted_windows.remove(&closed_window.entity);
     }
