@@ -8,9 +8,9 @@ use bevy_math::{IVec2, Vec2};
 pub struct WindowResized {
     pub entity: Entity,
     /// The new logical width of the window
-    pub width: f32,
+    pub width: f64,
     /// The new logical height of the window.
-    pub height: f32,
+    pub height: f64,
 }
 
 // TODO: This would redraw all windows ? If yes, update docs to reflect this

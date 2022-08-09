@@ -33,17 +33,15 @@ use bevy_utils::{
     Instant,
 };
 use bevy_window::{
-    Cursor, CursorEntered, CursorIcon, CursorLeft, CursorMoved, CursorPosition, FileDragAndDrop,
-    ModifiesWindows, PresentMode, PrimaryWindow, ReceivedCharacter, RequestRedraw, Window,
-    WindowBackendScaleFactorChanged, WindowBundle, WindowCanvas, WindowCloseRequested,
-    WindowComponents, WindowCreated, WindowCurrentlyFocused, WindowDecorated, WindowFocused,
-    WindowHandle, WindowMode, WindowMoved, WindowPosition, WindowResizable, WindowResized,
-    WindowResolution, WindowScaleFactorChanged, WindowTitle, WindowTransparent,
+    CursorEntered, CursorLeft, CursorMoved, CursorPosition, FileDragAndDrop, ModifiesWindows,
+    PrimaryWindow, ReceivedCharacter, RequestRedraw, Window, WindowBackendScaleFactorChanged,
+    WindowCloseRequested, WindowComponents, WindowCurrentlyFocused, WindowFocused, WindowMoved,
+    WindowPosition, WindowResized, WindowResolution, WindowScaleFactorChanged,
 };
 
 use winit::{
     event::{self, DeviceEvent, Event, StartCause, WindowEvent},
-    event_loop::{ControlFlow, EventLoop, EventLoopProxy, EventLoopWindowTarget},
+    event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget},
 };
 
 #[derive(Default)]
@@ -501,16 +499,13 @@ pub fn winit_runner_with(mut app: App) {
 
                         let new_logical_width = new_inner_size.width as f64 / new_factor;
                         let new_logical_height = new_inner_size.height as f64 / new_factor;
-                        if approx::relative_ne!(window_resolution.width() as f64, new_logical_width)
-                            || approx::relative_ne!(
-                                window_resolution.height() as f64,
-                                new_logical_height
-                            )
+                        if approx::relative_ne!(window_resolution.width(), new_logical_width)
+                            || approx::relative_ne!(window_resolution.height(), new_logical_height)
                         {
                             window_events.window_resized.send(WindowResized {
                                 entity: window_entity,
-                                width: new_logical_width as f32,
-                                height: new_logical_height as f32,
+                                width: new_logical_width,
+                                height: new_logical_height,
                             });
                         }
                         window_resolution
@@ -588,13 +583,8 @@ pub fn winit_runner_with(mut app: App) {
                 winit_state.active = true;
             }
             event::Event::MainEventsCleared => {
-                let (
-                    mut commands,
-                    new_windows,
-                    mut winit_windows,
-                    winit_config,
-                    window_focused_query,
-                ) = create_window_system_state.get_mut(&mut app.world);
+                let (commands, new_windows, winit_windows, winit_config, window_focused_query) =
+                    create_window_system_state.get_mut(&mut app.world);
 
                 // Responsible for creating new windows
                 create_window_system(commands, event_loop, new_windows, winit_windows);

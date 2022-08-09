@@ -8,9 +8,8 @@ use bevy::{
 
 fn main() {
     App::new()
-        .insert_resource(WindowDescriptor {
-            width: 500.,
-            height: 300.,
+        .insert_resource(WindowBundle {
+            resolution: (500., 300.).into(),
             ..default()
         })
         .add_plugins(DefaultPlugins)

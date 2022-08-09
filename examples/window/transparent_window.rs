@@ -4,19 +4,20 @@
 //! [documentation](https://docs.rs/bevy/latest/bevy/prelude/struct.WindowDescriptor.html#structfield.transparent)
 //! for more details.
 
-use bevy::{prelude::*, window::WindowDescriptor};
+use bevy::{
+    prelude::*,
+    window::{WindowBundle, WindowTransparent, WindowUndecorated},
+};
 
 fn main() {
     App::new()
         // ClearColor must have 0 alpha, otherwise some color will bleed through
         .insert_resource(ClearColor(Color::NONE))
-        .insert_resource(WindowDescriptor {
-            // Setting `transparent` allows the `ClearColor`'s alpha value to take effect
-            transparent: true,
-            // Disabling window decorations to make it feel more like a widget than a window
-            decorations: false,
-            ..default()
-        })
+        .insert_resource(WindowBundle::default())
+        // Setting `transparent` allows the `ClearColor`'s alpha value to take effect
+        .insert_resource(WindowTransparent)
+        // Disabling window decorations to make it feel more like a widget than a window
+        .insert_resource(WindowUndecorated)
         .add_startup_system(setup)
         .add_plugins(DefaultPlugins)
         .run();

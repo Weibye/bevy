@@ -45,11 +45,7 @@ fn setup(
     asset_server: Res<AssetServer>,
 ) {
     let primary_resolution = windows
-        .get(
-            primary_window
-                .window
-                .expect("Should have a valid PrimaryWindow"),
-        )
+        .get(primary_window.window)
         .expect("PrimaryWindow should have a valid Resolution component");
 
     let size = Extent3d {

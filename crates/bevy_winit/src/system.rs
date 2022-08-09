@@ -11,10 +11,9 @@ use bevy_math::IVec2;
 use bevy_utils::tracing::{error, info};
 use bevy_window::{
     Cursor, CursorIcon, CursorPosition, PresentMode, Window, WindowBundle, WindowCanvas,
-    WindowClosed, WindowComponents, WindowCreated, WindowCurrentlyFocused, WindowDecorated,
-    WindowHandle, WindowMaximized, WindowMinimized, WindowMode, WindowPosition, WindowResizable,
-    WindowResizeConstraints, WindowResolution, WindowScaleFactorChanged, WindowTitle,
-    WindowTransparent,
+    WindowClosed, WindowComponents, WindowCreated, WindowCurrentlyFocused, WindowDecorations,
+    WindowHandle, WindowMode, WindowPosition, WindowResizable, WindowResizeConstraints,
+    WindowResolution, WindowScaleFactorChanged, WindowState, WindowTitle, WindowTransparency,
 };
 use raw_window_handle::HasRawWindowHandle;
 use winit::{
@@ -43,6 +42,7 @@ pub fn create_window_system(
         info!("Creating a new window: {:?}", window_entity);
 
         let winit_window = winit_windows.create_window(&event_loop, window_entity, &components);
+        info!("winit window: {:?}", window_entity);
 
         commands
             .entity(window_entity)

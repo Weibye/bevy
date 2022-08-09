@@ -4,15 +4,14 @@
 use bevy::{
     ecs::system::Command,
     prelude::*,
-    window::{PresentMode, PrimaryWindow, WindowCursor, WindowTitle},
+    window::{Cursor, PresentMode, PrimaryWindow, WindowResolution, WindowTitle},
 };
 
 fn main() {
     App::new()
-        .insert_resource(WindowDescriptor {
-            title: "I am a window!".to_string(),
-            width: 500.,
-            height: 300.,
+        .insert_resource(WindowBundle {
+            title: WindowTitle::new("I am a window!"),
+            resolution: WindowResolution::new(500., 300.),
             present_mode: PresentMode::AutoVsync,
             ..default()
         })
@@ -24,34 +23,29 @@ fn main() {
 }
 
 /// This system will then change the title during execution
-fn change_title(mut commands: Commands, primary_window: Res<PrimaryWindow>, time: Res<Time>) {
-    let mut window_commands = commands.window(primary_window.window.unwrap());
-    window_commands.set_title(format!(
-        "Seconds since startup: {}",
-        time.seconds_since_startup().round()
-    ));
+fn change_title(mut titles: Query<&mut WindowTitle, With<Window>>, time: Res<Time>) {
+    for mut title in &mut titles {
+        title.set(format!(
+            "Seconds since startup: {}",
+            time.seconds_since_startup().round()
+        ));
+    }
 }
 
-/// This system toggles the cursor's visibility when the space bar is pressed
-fn toggle_cursor(
-    mut commands: Commands,
-    primary_window: Res<PrimaryWindow>,
-    window_q: Query<&WindowCursor, With<Window>>,
-    input: Res<Input<KeyCode>>,
-) {
-    let primary_window_id = primary_window.window.unwrap();
-    let mut window_commands = commands.window(primary_window_id);
+fn toggle_cursor(mut cursors: Query<&mut Cursor, With<Window>>, input: Res<Input<KeyCode>>) {
     if input.just_pressed(KeyCode::Space) {
-        let cursor = window_q.get(primary_window_id).unwrap(); // TODO: Is unwrap ok for these?
-        window_commands.set_cursor_lock_mode(!cursor.cursor_locked());
-        window_commands.set_cursor_visibility(!cursor.cursor_visible());
+        for mut cursor in &mut cursors {
+            let visible = cursor.visible();
+            let locked = cursor.locked();
+            cursor.set_visible(!visible);
+            cursor.set_locked(!locked);
+        }
     }
 }
 
 /// This system cycles the cursor's icon through a small set of icons when clicking
 fn cycle_cursor_icon(
-    mut commands: Commands,
-    primary_window: Res<PrimaryWindow>,
+    mut cursors: Query<&mut Cursor, With<Window>>,
     input: Res<Input<MouseButton>>,
     mut index: Local<usize>,
 ) {
@@ -63,17 +57,17 @@ fn cycle_cursor_icon(
         CursorIcon::Copy,
     ];
 
-    let primary_window_id = primary_window.window.unwrap();
-    let mut window_commands = commands.window(primary_window_id);
     if input.just_pressed(MouseButton::Left) {
         *index = (*index + 1) % ICONS.len();
-        window_commands.set_cursor_icon(ICONS[*index]);
     } else if input.just_pressed(MouseButton::Right) {
         *index = if *index == 0 {
             ICONS.len() - 1
         } else {
             *index - 1
         };
-        window_commands.set_cursor_icon(ICONS[*index]);
+    }
+
+    for mut cursor in &mut cursors {
+        cursor.set_icon(ICONS[*index]);
     }
 }

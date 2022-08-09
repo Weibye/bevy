@@ -3,7 +3,7 @@ use std::borrow::Cow;
 
 use bevy_ecs::{
     entity::Entity,
-    prelude::{Bundle, Component},
+    prelude::{Bundle, Component, ReflectComponent},
     query::WorldQuery,
 };
 use bevy_math::{DVec2, IVec2, UVec2, Vec2};
@@ -28,8 +28,9 @@ use crate::{raw_window_handle::RawWindowHandleWrapper, WindowFocused};
 /// The presentation mode may be declared in the [`WindowDescriptor`](WindowDescriptor::present_mode)
 /// or updated on a [`Window`](Window::set_present_mode).
 #[repr(C)]
-#[derive(Copy, Clone, Component, Debug, PartialEq, Eq, Hash)]
+#[derive(Default, Copy, Clone, Component, Debug, PartialEq, Eq, Hash, Reflect)]
 #[doc(alias = "vsync")]
+#[reflect(Component)]
 pub enum PresentMode {
     /// Chooses FifoRelaxed -> Fifo based on availability.
     ///
@@ -58,19 +59,16 @@ pub enum PresentMode {
     /// The presentation engine waits for the next vertical blanking period to update
     /// the current image. The framerate will be capped at the display refresh rate,
     /// corresponding to the `VSync`. Tearing cannot be observed. Optimal for mobile.
+    #[default]
     Fifo = 4, // NOTE: The explicit ordinal values mirror wgpu.
 }
 
-impl Default for PresentMode {
-    fn default() -> Self {
-        PresentMode::Fifo
-    }
-}
-
 /// Defines the way a window is displayed
-#[derive(Debug, Component, Clone, Copy, PartialEq)]
+#[derive(Default, Debug, Component, Clone, Copy, PartialEq, Reflect)]
+#[reflect(Component)]
 pub enum WindowMode {
     /// Creates a window that uses the given size
+    #[default]
     Windowed,
     /// Creates a borderless window that uses the full size of the screen
     BorderlessFullscreen,
@@ -79,12 +77,6 @@ pub enum WindowMode {
     SizedFullscreen,
     /// Creates a fullscreen window that uses the maximum supported size
     Fullscreen,
-}
-
-impl Default for WindowMode {
-    fn default() -> Self {
-        WindowMode::Windowed
-    }
 }
 
 /// Define how a window will be created and how it will behave.
@@ -102,7 +94,8 @@ pub struct WindowBundle {
     //pub canvas: WindowCanvas,
     pub resize_constraints: WindowResizeConstraints,
     pub resizable: WindowResizable,
-    pub decorated: WindowDecorated,
+    pub decorations: WindowDecorations,
+    pub transparency: WindowTransparency,
 }
 
 #[derive(WorldQuery)]
@@ -117,10 +110,9 @@ pub struct WindowComponents<'a> {
     pub resolution: &'a WindowResolution,
     pub title: &'a WindowTitle,
     pub resize_constraints: &'a WindowResizeConstraints,
-
-    pub resizable: Option<&'a WindowResizable>,
-    pub decorated: Option<&'a WindowDecorated>,
-    pub transparent: Option<&'a WindowTransparent>,
+    pub resizable: &'a WindowResizable,
+    pub decorations: &'a WindowDecorations,
+    pub transparency: &'a WindowTransparency,
 }
 
 /// The size limits on a window.
@@ -130,7 +122,8 @@ pub struct WindowComponents<'a> {
 /// Please note that if the window is resizable, then when the window is
 /// maximized it may have a size outside of these limits. The functionality
 /// required to disable maximizing is not yet exposed by winit.
-#[derive(Debug, Clone, Copy, Component)]
+#[derive(Debug, Clone, Copy, Component, Reflect)]
+#[reflect(Component)]
 pub struct WindowResizeConstraints {
     pub min_width: f32,
     pub min_height: f32,
@@ -184,10 +177,12 @@ impl WindowResizeConstraints {
 }
 
 /// A marker component on an entity that is a window
-#[derive(Default, Debug, Component, Copy, Clone)]
+#[derive(Default, Debug, Component, Copy, Clone, Reflect)]
+#[reflect(Component)]
 pub struct Window;
 
-#[derive(Debug, Component, Copy, Clone)]
+#[derive(Debug, Component, Copy, Clone, Reflect)]
+#[reflect(Component)]
 pub struct Cursor {
     icon: CursorIcon,
     visible: bool,
@@ -241,7 +236,8 @@ impl Cursor {
     }
 }
 
-#[derive(Default, Debug, Component, Clone)]
+#[derive(Default, Debug, Component, Clone, Reflect)]
+#[reflect(Component)]
 pub struct CursorPosition {
     /// Cursor position if it is inside of the window.
     physical_cursor_position: Option<DVec2>,
@@ -283,9 +279,11 @@ impl WindowHandle {
 }
 
 /// Defines where window should be placed at on creation.
-#[derive(Debug, Clone, Copy, Component)]
+#[derive(Default, Debug, Clone, Copy, Component, Reflect)]
+#[reflect(Component)]
 pub enum WindowPosition {
     /// Position will be set by the window manager
+    #[default]
     Automatic,
     /// Window will be centered on the selected monitor
     ///
@@ -295,12 +293,6 @@ pub enum WindowPosition {
     ///
     /// (0,0) represents top-left corner of screen space.
     At(IVec2),
-}
-
-impl Default for WindowPosition {
-    fn default() -> Self {
-        WindowPosition::Automatic
-    }
 }
 
 impl WindowPosition {
@@ -338,10 +330,11 @@ impl WindowPosition {
 /// quantization of the logical size when converting the physical size to the
 /// logical size through the scaling factor.
 // TODO: Make sure this is used correctly
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Debug, Clone, Reflect)]
+#[reflect(Component)]
 pub struct WindowResolution {
-    requested_width: f32,
-    requested_height: f32,
+    requested_width: f64,
+    requested_height: f64,
     physical_width: u32,
     physical_height: u32,
     scale_factor_override: Option<f64>,
@@ -362,14 +355,50 @@ impl Default for WindowResolution {
 }
 
 impl WindowResolution {
-    pub fn new(width: f32, height: f32) -> Self {
+    pub fn new(requested_width: f64, requested_height: f64) -> Self {
         Self {
-            requested_width: width,
-            requested_height: height,
-            physical_width: width as u32,
-            physical_height: height as u32,
+            requested_width,
+            requested_height,
+            physical_width: requested_width as u32,
+            physical_height: requested_height as u32,
             ..Default::default()
         }
+    }
+
+    /// The current requested width of the window's client area.
+    #[inline]
+    pub fn requested_width(&self) -> f64 {
+        self.requested_width
+    }
+
+    /// The current requested height of the window's client area.
+    #[inline]
+    pub fn requested_height(&self) -> f64 {
+        self.requested_height
+    }
+
+    /// The window's client area width in logical pixels.
+    #[inline]
+    pub fn width(&self) -> f64 {
+        self.physical_width() as f64 / self.scale_factor()
+    }
+
+    /// The window's client area width in logical pixels.
+    #[inline]
+    pub fn height(&self) -> f64 {
+        self.physical_height() as f64 / self.scale_factor()
+    }
+
+    /// The window's client area width in physical pixels.
+    #[inline]
+    pub fn physical_width(&self) -> u32 {
+        self.physical_width
+    }
+
+    /// The window's client area height in physical pixels.
+    #[inline]
+    pub fn physical_height(&self) -> u32 {
+        self.physical_height
     }
 
     /// The ratio of physical pixels to logical pixels
@@ -387,6 +416,7 @@ impl WindowResolution {
     pub fn base_scale_factor(&self) -> f64 {
         self.scale_factor
     }
+
     /// The scale factor set with [`set_scale_factor_override`](Window::set_scale_factor_override).
     ///
     /// This value may be different from the scale factor reported by the window backend.
@@ -395,48 +425,21 @@ impl WindowResolution {
         self.scale_factor_override
     }
 
-    /// The current logical width of the window's client area.
+    /// Set the window's requested resolution.
     #[inline]
-    pub fn width(&self) -> f32 {
-        (self.physical_width as f64 / self.scale_factor()) as f32
+    pub fn set_requested_resolution(&mut self, width: f64, height: f64) {
+        self.requested_width = width;
+        self.requested_height = height;
     }
 
-    /// The current logical height of the window's client area.
-    #[inline]
-    pub fn height(&self) -> f32 {
-        (self.physical_height as f64 / self.scale_factor()) as f32
-    }
-
-    /// The requested window client area width in logical pixels from window
-    /// creation or the last call to [`set_resolution`](Window::set_resolution).
+    /// Set the window's physical resolution.
     ///
-    /// This may differ from the actual width depending on OS size limits and
-    /// the scaling factor for high DPI monitors.
+    /// You probably don't want to call this directly unless you are dealing
+    /// with a window manager library.
     #[inline]
-    pub fn requested_width(&self) -> f32 {
-        self.requested_width
-    }
-
-    /// The requested window client area height in logical pixels from window
-    /// creation or the last call to [`set_resolution`](Window::set_resolution).
-    ///
-    /// This may differ from the actual width depending on OS size limits and
-    /// the scaling factor for high DPI monitors.
-    #[inline]
-    pub fn requested_height(&self) -> f32 {
-        self.requested_height
-    }
-
-    /// The window's client area width in physical pixels.
-    #[inline]
-    pub fn physical_width(&self) -> u32 {
-        self.physical_width
-    }
-
-    /// The window's client area height in physical pixels.
-    #[inline]
-    pub fn physical_height(&self) -> u32 {
-        self.physical_height
+    pub fn set_physical_resolution(&mut self, width: u32, height: u32) {
+        self.physical_width = width;
+        self.physical_height = height;
     }
 
     /// Set the window's scale factor, this may get overriden by the backend.
@@ -450,23 +453,19 @@ impl WindowResolution {
     pub fn set_scale_factor_override(&mut self, scale_factor_override: Option<f64>) {
         self.scale_factor_override = scale_factor_override;
     }
+}
 
-    /// Set the window's logical resolution.
-    #[inline]
-    pub fn set_resolution(&mut self, width: f32, height: f32) {
-        self.requested_width = width;
-        self.requested_height = height;
-    }
-
-    /// Set the window's physical resolution in pixels.
-    #[inline]
-    pub fn set_physical_resolution(&mut self, physical_width: u32, physical_height: u32) {
-        self.physical_width = physical_width;
-        self.physical_height = physical_height;
+impl<I> From<(I, I)> for WindowResolution
+where
+    I: Into<f64>,
+{
+    fn from((width, height): (I, I)) -> WindowResolution {
+        WindowResolution::new(width.into(), height.into())
     }
 }
 
-#[derive(Component, Debug, Clone)]
+#[derive(Component, Debug, Clone, PartialEq, Eq, Reflect)]
+#[reflect(Component)]
 pub struct WindowTitle {
     title: Cow<'static, str>,
 }
@@ -498,25 +497,92 @@ impl WindowTitle {
     }
 }
 
-#[derive(Default, Component, Debug, Clone)]
-pub struct WindowDecorated;
+impl<I> From<I> for WindowTitle
+where
+    I: Into<Cow<'static, str>>,
+{
+    fn from(title: I) -> WindowTitle {
+        WindowTitle::new(title)
+    }
+}
 
-#[derive(Default, Component, Debug, Clone)]
+#[derive(Default, Component, Debug, Copy, Clone, PartialEq, Eq, Reflect)]
+#[reflect(Component)]
+pub enum WindowDecorations {
+    /// Window will have decorations (title, border, etc.)
+    #[default]
+    Decorated,
+
+    /// Window will not have decorations
+    Undecorated,
+}
+
+impl WindowDecorations {
+    pub fn decorated(&self) -> bool {
+        *self == Self::Decorated
+    }
+}
+
+#[derive(Default, Component, Debug, Copy, Clone, PartialEq, Eq, Reflect)]
+#[reflect(Component)]
 pub struct WindowCurrentlyFocused;
 
-#[derive(Default, Component, Debug, Clone)]
-pub struct WindowResizable;
+#[derive(Default, Component, Debug, Copy, Clone, PartialEq, Eq, Reflect)]
+#[reflect(Component)]
+pub enum WindowResizable {
+    /// This window is allowed to be resized by the user.
+    #[default]
+    Resizable,
 
-#[derive(Default, Component, Debug, Clone)]
-pub struct WindowTransparent;
+    /// This window is not allowed to be resized by the user.
+    ///
+    /// Note: This does not stop the program from fullscreening/setting
+    /// the size programmatically.
+    Unresizable,
+}
 
-#[derive(Default, Component, Debug, Clone)]
-pub struct WindowMinimized;
+impl WindowResizable {
+    pub fn resizable(&self) -> bool {
+        *self == Self::Resizable
+    }
+}
 
-#[derive(Default, Component, Debug, Clone)]
-pub struct WindowMaximized;
+#[derive(Default, Component, Debug, Copy, Clone, PartialEq, Eq, Reflect)]
+#[reflect(Component)]
+pub enum WindowTransparency {
+    /// The window will have an opaque background by default.
+    #[default]
+    Opaque,
 
-#[derive(Component, Debug, Clone)]
+    /// The window's background will be see-through/transparent.
+    Transparent,
+}
+
+impl WindowTransparency {
+    pub fn transparent(&self) -> bool {
+        *self == Self::Transparent
+    }
+}
+
+#[derive(Default, Component, Debug, Copy, Clone, PartialEq, Eq, Reflect)]
+#[reflect(Component)]
+pub enum WindowState {
+    /// The window is floating, this mostly just means that it is
+    /// neither maximized nor minimized.
+    #[default]
+    Floating,
+
+    /// The window is minimized to the task bar, but the program is
+    /// still running.
+    Minimized,
+
+    /// The window is taking up the maximum amount of space on the
+    /// window it is allowed to, without becoming fullscreen.
+    Maximized,
+}
+
+#[derive(Default, Component, Debug, Clone, PartialEq, Eq, Reflect)]
+#[reflect(Component)]
 pub struct WindowCanvas {
     canvas: Option<String>,
     fit_canvas_to_parent: bool,
@@ -554,7 +620,7 @@ impl WindowCanvas {
 }
 
 /// Defines which monitor to use.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Reflect)]
 pub enum MonitorSelection {
     /// Uses current monitor of the window.
     Current,
@@ -562,83 +628,4 @@ pub enum MonitorSelection {
     Primary,
     /// Uses monitor with the specified index.
     Number(usize),
-}
-<<<<<<< HEAD
-
-<<<<<<< HEAD
-/// Describes the information needed for creating a window.
-///
-/// This should be set up before adding the [`WindowPlugin`](crate::WindowPlugin).
-/// Most of these settings can also later be configured through the [`Window`](crate::Window) resource.
-///
-/// See [`examples/window/window_settings.rs`] for usage.
-///
-/// [`examples/window/window_settings.rs`]: https://github.com/bevyengine/bevy/blob/latest/examples/window/window_settings.rs
-#[derive(Resource, Debug, Clone)]
-pub struct WindowDescriptor {
-    /// The requested logical width of the window's client area.
-    ///
-    /// May vary from the physical width due to different pixel density on different monitors.
-    pub width: f32,
-    /// The requested logical height of the window's client area.
-    ///
-    /// May vary from the physical height due to different pixel density on different monitors.
-    pub height: f32,
-    /// The position on the screen that the window will be placed at.
-    pub position: WindowPosition,
-    /// Sets minimum and maximum resize limits.
-    pub resize_constraints: WindowResizeConstraints,
-    /// Overrides the window's ratio of physical pixels to logical pixels.
-    ///
-    /// If there are some scaling problems on X11 try to set this option to `Some(1.0)`.
-    pub scale_factor_override: Option<f64>,
-    /// Sets the title that displays on the window top bar, on the system task bar and other OS specific places.
-    ///
-    /// ## Platform-specific
-    /// - Web: Unsupported.
-    pub title: String,
-    /// Controls when a frame is presented to the screen.
-    #[doc(alias = "vsync")]
-    /// The window's [`PresentMode`].
-    ///
-    /// Used to select whether or not VSync is used
-    pub present_mode: PresentMode,
-    /// Sets whether the window is resizable.
-    ///
-    /// ## Platform-specific
-    /// - iOS / Android / Web: Unsupported.
-    pub resizable: bool,
-    /// Sets whether the window should have borders and bars.
-    pub decorations: bool,
-    /// Sets whether the cursor is visible when the window has focus.
-    pub cursor_visible: bool,
-    /// Sets whether the window locks the cursor inside its borders when the window has focus.
-    pub cursor_locked: bool,
-    /// Sets the [`WindowMode`](crate::WindowMode).
-    pub mode: WindowMode,
-    /// Sets whether the background of the window should be transparent.
-    ///
-    /// ## Platform-specific
-    /// - iOS / Android / Web: Unsupported.
-    /// - macOS X: Not working as expected.
-    /// - Windows 11: Not working as expected
-    /// macOS X transparent works with winit out of the box, so this issue might be related to: <https://github.com/gfx-rs/wgpu/issues/687>
-    /// Windows 11 is related to <https://github.com/rust-windowing/winit/issues/2082>
-    pub transparent: bool,
-    /// The "html canvas" element selector.
-    ///
-    /// If set, this selector will be used to find a matching html canvas element,
-    /// rather than creating a new one.   
-    /// Uses the [CSS selector format](https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelector).
-    ///
-    /// This value has no effect on non-web platforms.
-    pub canvas: Option<String>,
-    /// Whether or not to fit the canvas element's size to its parent element's size.
-    ///
-    /// **Warning**: this will not behave as expected for parents that set their size according to the size of their
-    /// children. This creates a "feedback loop" that will result in the canvas growing on each resize. When using this
-    /// feature, ensure the parent's size is not affected by its children.
-    ///
-    /// This value has no effect on non-web platforms.
-    pub fit_canvas_to_parent: bool,
 }

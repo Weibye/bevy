@@ -105,9 +105,9 @@ impl WinitWindows {
                         .with_inner_size(LogicalSize::new(resolution.width(), resolution.height()))
                 }
             }
-            .with_resizable(components.resizable.is_some())
-            .with_decorations(components.decorated.is_some())
-            .with_transparent(components.transparent.is_some()),
+            .with_resizable(components.resizable.resizable())
+            .with_decorations(components.decorations.decorated())
+            .with_transparent(components.transparency.transparent()),
         };
 
         let constraints = components.resize_constraints.check_constraints();

@@ -96,14 +96,15 @@ fn change_window_size(
     }
 }
 
-fn sync_dimensions(dim: Res<Dimensions>, mut commands: Commands, primary: ResMut<PrimaryWindow>) {
+fn sync_dimensions(
+    dim: Res<Dimensions>,
+    primary: ResMut<PrimaryWindow>,
+    resolution: Query<&mut WindowResolution>,
+) {
     if dim.is_changed() {
-        // TODO: Verify that this behaviour is unchanged
-        commands.window(primary.window.unwrap()).set_resolution(
-            dim.width.try_into().unwrap(),
-            dim.height.try_into().unwrap(),
-            1.0,
-        );
+        if let Some(resolution) = resolution.get_mut(primary.window) {
+            resolution.set();
+        }
     }
 }
 

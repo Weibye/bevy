@@ -8,8 +8,7 @@ use bevy::{
 #[bevy_main]
 fn main() {
     App::new()
-        .insert_resource(WindowDescriptor {
-            resizable: false,
+        .insert_resource(WindowBundle {
             mode: WindowMode::BorderlessFullscreen,
             ..default()
         })
@@ -29,11 +28,7 @@ fn touch_camera(
     mut last_position: Local<Option<Vec2>>,
 ) {
     let primary_resolution = windows
-        .get(
-            primary_window
-                .window
-                .expect("Should have a valid PrimaryWindow"),
-        )
+        .get(primary_window.window)
         .expect("PrimaryWindow should have a valid Resolution component");
 
     for touch in touches.iter() {
@@ -44,10 +39,12 @@ fn touch_camera(
             let mut transform = camera.single_mut();
             *transform = Transform::from_xyz(
                 transform.translation.x
-                    + (touch.position.x - last_position.x) / primary_resolution.width() * 5.0,
+                    + (touch.position.x - last_position.x) / primary_resolution.width() as f32
+                        * 5.0,
                 transform.translation.y,
                 transform.translation.z
-                    + (touch.position.y - last_position.y) / primary_resolution.height() * 5.0,
+                    + (touch.position.y - last_position.y) / primary_resolution.height() as f32
+                        * 5.0,
             )
             .looking_at(Vec3::ZERO, Vec3::Y);
         }

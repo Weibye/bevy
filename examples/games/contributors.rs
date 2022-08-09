@@ -257,14 +257,14 @@ fn collision_system(
         .get(primary_window.window)
         .expect("PrimaryWindow should have a valid Resolution component");
 
-    let ceiling = window_resolution.height() / 2.;
-    let ground = -(window_resolution.height() / 2.);
+    let ceiling = (window_resolution.height() / 2.) as f32;
+    let ground = -(window_resolution.height() / 2.) as f32;
 
-    let wall_left = -(window_resolution.width() / 2.);
-    let wall_right = window_resolution.width() / 2.;
+    let wall_left = -(window_resolution.width() / 2.) as f32;
+    let wall_right = (window_resolution.width() / 2.) as f32;
 
     // The maximum height the birbs should try to reach is one birb below the top of the window.
-    let max_bounce_height = window_resolution.height() - SPRITE_SIZE * 2.0;
+    let max_bounce_height = window_resolution.height() as f32 - SPRITE_SIZE * 2.0;
 
     let mut rng = rand::thread_rng();
 

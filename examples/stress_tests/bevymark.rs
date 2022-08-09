@@ -72,11 +72,7 @@ fn scheduled_spawner(
     bird_texture: Res<BirdTexture>,
 ) {
     let primary_resolution = windows
-        .get(
-            primary_window
-                .window
-                .expect("Should have a valid PrimaryWindow"),
-        )
+        .get(primary_window.window)
         .expect("PrimaryWindow should have a valid Resolution component");
 
     if scheduled.wave > 0 {
@@ -171,11 +167,7 @@ fn mouse_handler(
     mut counter: ResMut<BevyCounter>,
 ) {
     let primary_resolution = windows
-        .get(
-            primary_window
-                .window
-                .expect("Should have a valid PrimaryWindow"),
-        )
+        .get(primary_window.window)
         .expect("PrimaryWindow should have a valid Resolution component");
 
     if mouse_button_input.just_released(MouseButton::Left) {
@@ -247,11 +239,7 @@ fn collision_system(
     mut bird_query: Query<(&mut Bird, &Transform)>,
 ) {
     let primary_resolution = windows
-        .get(
-            primary_window
-                .window
-                .expect("Should have a valid PrimaryWindow"),
-        )
+        .get(primary_window.window)
         .expect("PrimaryWindow should have a valid Resolution component");
 
     let half_width = primary_resolution.width() as f32 * 0.5;

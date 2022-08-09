@@ -1,22 +1,28 @@
 [package]
-name = "bevy_window"
-version = "0.9.0-dev"
-edition = "2021"
+<<<<<<<=======
+>>>>>>>672515e3f... Fix up some examples/tests, more documentation, enums instead of marker
+HEAD 
 description = "Provides windowing functionality for Bevy Engine"
+edition = "2021"
+edition = "2021"
 homepage = "https://bevyengine.org"
-repository = "https://github.com/bevyengine/bevy"
-license = "MIT OR Apache-2.0"
 keywords = ["bevy"]
+license = "MIT OR Apache-2.0"
+name = "bevy_window"
+name = "bevy_window"
+repository = "https://github.com/bevyengine/bevy"
+version = "0.9.0-dev"
+version = "0.8.0"
 
 [dependencies]
 # bevy
-bevy_app = { path = "../bevy_app", version = "0.9.0-dev" }
-bevy_ecs = { path = "../bevy_ecs", version = "0.9.0-dev" }
-bevy_math = { path = "../bevy_math", version = "0.9.0-dev" }
-bevy_reflect = { path = "../bevy_reflect", version = "0.9.0-dev" }
-bevy_utils = { path = "../bevy_utils", version = "0.9.0-dev" }
+bevy_app = {path = "../bevy_app", version = "0.9.0-dev"}
+bevy_ecs = {path = "../bevy_ecs", version = "0.9.0-dev"}
+bevy_math = {path = "../bevy_math", version = "0.9.0-dev"}
+bevy_reflect = {path = "../bevy_reflect", version = "0.9.0-dev"}
+bevy_utils = {path = "../bevy_utils", version = "0.9.0-dev"}
 # Used for close_on_esc
-bevy_input = { path = "../bevy_input", version = "0.9.0-dev" }
+bevy_input = {path = "../bevy_input", version = "0.9.0-dev"}
 raw-window-handle = "0.4.2"
 
 # other
