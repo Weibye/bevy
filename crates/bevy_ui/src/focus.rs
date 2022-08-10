@@ -1,4 +1,4 @@
-use crate::{entity::UiCameraConfig, CalculatedClip, Node};
+use crate::{prelude::UiCameraConfig, CalculatedClip, Node};
 use bevy_ecs::{
     entity::Entity,
     prelude::{Component, With},
@@ -8,10 +8,10 @@ use bevy_ecs::{
 use bevy_input::{mouse::MouseButton, touch::Touches, Input};
 use bevy_math::Vec2;
 use bevy_reflect::{Reflect, ReflectDeserialize, ReflectSerialize};
-use bevy_render::view::ComputedVisibility;
+use bevy_render::{camera::RenderTarget, prelude::Camera, view::ComputedVisibility};
 use bevy_transform::components::GlobalTransform;
 use bevy_utils::FloatOrd;
-use bevy_window::{CursorPosition, PrimaryWindow, Window};
+use bevy_window::{CursorPosition, PrimaryWindow, Window, WindowFocus};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
@@ -66,8 +66,8 @@ pub struct State {
 /// Entities with a hidden [`ComputedVisibility`] are always treated as released.
 pub fn ui_focus_system(
     mut state: Local<State>,
-    primary_window: Option<Res<PrimaryWindow>>,
-    cursor_positions: Query<&CursorPosition, With<Window>>,
+    camera: Query<(&Camera, Option<&UiCameraConfig>)>,
+    cursor_positions: Query<(&CursorPosition, &WindowFocus), With<Window>>,
     mouse_button_input: Res<Input<MouseButton>>,
     touches_input: Res<Touches>,
     mut node_query: Query<(
@@ -80,18 +80,6 @@ pub fn ui_focus_system(
         Option<&ComputedVisibility>,
     )>,
 ) {
-    let primary_window = if let Some(primary_window) = primary_window {
-        primary_window
-    } else {
-        bevy_log::error!("No primary window found");
-        return;
-    };
-
-    let cursor_position = cursor_positions
-        .get(primary_window.window)
-        .expect("Primary window should have a valid WindowCursorPosition component")
-        .physical_position();
-
     // reset entities that were both clicked and released in the last frame
     for entity in state.entities_to_reset.drain(..) {
         if let Ok(mut interaction) = node_query.get_component_mut::<Interaction>(entity) {
@@ -115,6 +103,28 @@ pub fn ui_focus_system(
 
     let mouse_clicked =
         mouse_button_input.just_pressed(MouseButton::Left) || touches_input.any_just_pressed();
+
+    let is_ui_disabled =
+        |camera_ui| matches!(camera_ui, Some(&UiCameraConfig { show_ui: false, .. }));
+
+    let cursor_position = camera
+        .iter()
+        .filter(|(_, camera_ui)| !is_ui_disabled(*camera_ui))
+        .filter_map(|(camera, _)| {
+            if let RenderTarget::Window(window_id) = camera.target {
+                Some(window_id)
+            } else {
+                None
+            }
+        })
+        .filter_map(|window_id| cursor_positions.get(window_id).ok())
+        .filter(|(_, focus)| focus.focused())
+        .find_map(|(cursor_position, _)| {
+            cursor_position
+                .physical_position()
+                .map(|dvec| dvec.as_vec2())
+        })
+        .or_else(|| touches_input.first_pressed_position());
 
     let mut moused_over_z_sorted_nodes = node_query
         .iter_mut()

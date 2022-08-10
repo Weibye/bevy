@@ -445,7 +445,7 @@ impl WindowResolution {
     /// `physical_pixels = logical_pixels * scale_factor`
     pub fn scale_factor(&self) -> f64 {
         self.scale_factor_override
-            .unwrap_or(self.base_scale_factor())
+            .unwrap_or_else(|| self.base_scale_factor())
     }
 
     /// The window scale factor as reported by the window backend.

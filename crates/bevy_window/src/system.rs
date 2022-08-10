@@ -61,7 +61,7 @@ pub fn close_when_requested(
     for event in closed.iter() {
         window_closed.send(WindowClosed {
             entity: event.entity,
-        })
+        });
     }
 }
 
