@@ -562,15 +562,9 @@ impl WindowDecorations {
     }
 }
 
-#[derive(Component, Debug, Copy, Clone, PartialEq, Eq, Reflect)]
+#[derive(Default, Component, Debug, Copy, Clone, PartialEq, Eq, Reflect)]
 #[reflect(Component)]
 pub struct WindowFocus(bool);
-
-impl Default for WindowFocus {
-    fn default() -> Self {
-        WindowFocus(false) // more explicitly we aren't focused by default
-    }
-}
 
 impl WindowFocus {
     pub fn focused(&self) -> bool {
