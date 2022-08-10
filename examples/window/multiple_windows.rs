@@ -3,7 +3,7 @@
 use bevy::{
     prelude::*,
     render::camera::RenderTarget,
-    window::{PresentMode, PrimaryWindow, Window, WindowResolution, WindowTitle},
+    window::{PresentMode, PrimaryWindow, Window, WindowResolution, WindowState, WindowTitle},
 };
 
 fn main() {
@@ -48,6 +48,7 @@ fn setup_second_window(mut commands: Commands) {
         .spawn()
         .insert_bundle(WindowBundle {
             title: WindowTitle::new("Second window"),
+            state: WindowState::Minimized,
             ..Default::default()
         })
         .id();
@@ -66,6 +67,7 @@ fn setup_second_window(mut commands: Commands) {
         .spawn()
         .insert_bundle(WindowBundle {
             title: WindowTitle::new("Third window"),
+            state: WindowState::Minimized,
             ..Default::default()
         })
         .id();

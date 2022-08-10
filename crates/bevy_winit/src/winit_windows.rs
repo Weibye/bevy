@@ -60,6 +60,7 @@ impl WinitWindows {
                         .to_physical::<f64>(resolution.scale_factor()),
                 )
             }
+            .with_maximized(components.state.maximized())
             .with_resizable(components.resizable.resizable())
             .with_decorations(components.decorations.decorated())
             .with_transparent(components.transparency.transparent()),
@@ -108,6 +109,10 @@ impl WinitWindows {
         }
 
         let winit_window = winit_window_builder.build(event_loop).unwrap();
+
+        if components.state.minimized() {
+            //winit_window.set_minimized(true);
+        }
 
         if components.cursor.locked() {
             match winit_window.set_cursor_grab(true) {

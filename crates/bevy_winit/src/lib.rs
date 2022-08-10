@@ -33,8 +33,8 @@ use bevy_utils::{
 use bevy_window::{
     CursorEntered, CursorLeft, CursorMoved, FileDragAndDrop, ModifiesWindows, ReceivedCharacter,
     RequestRedraw, Window, WindowBackendScaleFactorChanged, WindowCloseRequested, WindowComponents,
-    WindowComponentsMut, WindowFocus, WindowFocused, WindowMoved, WindowResized,
-    WindowScaleFactorChanged,
+    WindowComponentsMut, WindowComponentsMutItem, WindowFocus, WindowFocused, WindowMoved,
+    WindowResized, WindowScaleFactorChanged, WindowState,
 };
 
 use winit::{
@@ -329,6 +329,20 @@ pub fn winit_runner(mut app: App) {
 
                 winit_state.low_power_event = true;
 
+                let check_window_state = |mut window: WindowComponentsMutItem| {
+                    if winit_window.is_maximized() {
+                        if !window.state.maximized() {
+                            *window.state = WindowState::Maximized;
+                        }
+                    } else {
+                        // We can't seem to get whether the window is minimized/iconified
+                        // so just leave it alone if it isn't `WindowState::Maximized`.
+                        if window.state.maximized() {
+                            *window.state = WindowState::Normal;
+                        }
+                    }
+                };
+
                 match event {
                     WindowEvent::Resized(size) => {
                         if let Ok(mut window) = window_query.get_mut(window_entity) {
@@ -343,6 +357,8 @@ pub fn winit_runner(mut app: App) {
                                 width: window.resolution.width(),
                                 height: window.resolution.height(),
                             });
+
+                            check_window_state(window);
                         } else {
                             // TODO: Helpful panic comment
                             panic!("Window does not have a valid WindowResolution component");
@@ -513,6 +529,8 @@ pub fn winit_runner(mut app: App) {
                         window
                             .resolution
                             .set_physical_resolution(new_inner_size.width, new_inner_size.height);
+
+                        check_window_state(window);
                     }
                     WindowEvent::Focused(focused) => {
                         let mut window = window_query
@@ -527,6 +545,12 @@ pub fn winit_runner(mut app: App) {
                             entity: window_entity,
                             focused,
                         });
+
+                        if winit_window.is_maximized() {
+                            *window.state = WindowState::Maximized;
+                        } else {
+                            *window.state = WindowState::Normal;
+                        }
                     }
                     WindowEvent::DroppedFile(path_buf) => {
                         file_drag_and_drop_events.send(FileDragAndDrop::DroppedFile {
@@ -553,6 +577,9 @@ pub fn winit_runner(mut app: App) {
                             .get_mut(window_entity)
                             .expect("Window should have a WindowPosition component");
                         window.position.set(position);
+
+                        // If the window is moved then it isn't minimized or maximized.
+                        *window.state = WindowState::Normal;
 
                         // Event
                         window_events.window_moved.send(WindowMoved {

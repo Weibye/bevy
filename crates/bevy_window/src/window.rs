@@ -90,6 +90,7 @@ pub struct WindowBundle {
     pub position: WindowPosition,
     pub resolution: WindowResolution,
     pub title: WindowTitle,
+    pub state: WindowState,
     // Maybe default this when using wasm?
     //pub canvas: WindowCanvas,
     pub resize_constraints: WindowResizeConstraints,
@@ -110,6 +111,7 @@ pub struct WindowComponents<'a> {
     pub position: &'a WindowPosition,
     pub resolution: &'a WindowResolution,
     pub title: &'a WindowTitle,
+    pub state: &'a WindowState,
     pub resize_constraints: &'a WindowResizeConstraints,
     pub resizable: &'a WindowResizable,
     pub decorations: &'a WindowDecorations,
@@ -129,6 +131,7 @@ pub struct WindowComponentsMut<'a> {
     pub position: &'a mut WindowPosition,
     pub resolution: &'a mut WindowResolution,
     pub title: &'a mut WindowTitle,
+    pub state: &'a mut WindowState,
     pub resize_constraints: &'a mut WindowResizeConstraints,
     pub resizable: &'a mut WindowResizable,
     pub decorations: &'a mut WindowDecorations,
@@ -620,6 +623,20 @@ pub enum WindowState {
     /// The window is taking up the maximum amount of space on the
     /// window it is allowed to, without becoming fullscreen.
     Maximized,
+}
+
+impl WindowState {
+    pub fn normal(&self) -> bool {
+        self == &Self::Normal
+    }
+
+    pub fn maximized(&self) -> bool {
+        self == &Self::Maximized
+    }
+
+    pub fn minimized(&self) -> bool {
+        self == &Self::Minimized
+    }
 }
 
 #[derive(Default, Component, Debug, Clone, PartialEq, Eq, Reflect)]
