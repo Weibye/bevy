@@ -11,7 +11,7 @@ fn main() {
         // Primary window gets spawned as a result of `DefaultPlugins`
         .add_plugins(DefaultPlugins)
         .add_startup_system(setup_scene)
-        .add_startup_system(setup_second_window)
+        .add_startup_system(setup_extra_windows)
         .add_system(bevy::window::close_on_esc)
         .run();
 }
@@ -42,11 +42,10 @@ fn setup_scene(
     });
 }
 
-fn setup_second_window(mut commands: Commands) {
+fn setup_extra_windows(mut commands: Commands) {
     // Spawn a new entity that will act as our window id
-    let window_id = commands
-        .spawn()
-        .insert_bundle(WindowBundle {
+    let second_window_id = commands
+        .spawn_bundle(WindowBundle {
             title: WindowTitle::new("Second window"),
             state: WindowState::Minimized,
             ..Default::default()
@@ -57,15 +56,14 @@ fn setup_second_window(mut commands: Commands) {
     commands.spawn_bundle(Camera3dBundle {
         transform: Transform::from_xyz(6.0, 0.0, 0.0).looking_at(Vec3::ZERO, Vec3::Y),
         camera: Camera {
-            target: RenderTarget::Window(window_id),
+            target: RenderTarget::Window(second_window_id),
             ..default()
         },
         ..default()
     });
 
-    let window_id = commands
-        .spawn()
-        .insert_bundle(WindowBundle {
+    let third_window_id = commands
+        .spawn_bundle(WindowBundle {
             title: WindowTitle::new("Third window"),
             state: WindowState::Maximized,
             ..Default::default()
@@ -76,7 +74,7 @@ fn setup_second_window(mut commands: Commands) {
     commands.spawn_bundle(Camera3dBundle {
         transform: Transform::from_xyz(-6.0, 0.0, 0.0).looking_at(Vec3::ZERO, Vec3::Y),
         camera: Camera {
-            target: RenderTarget::Window(window_id),
+            target: RenderTarget::Window(third_window_id),
             ..default()
         },
         ..default()
