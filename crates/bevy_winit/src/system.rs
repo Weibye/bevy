@@ -7,7 +7,8 @@ use bevy_ecs::{
 use bevy_utils::tracing::{error, info};
 use bevy_window::{
     Cursor, CursorPosition, PrimaryWindow, Window, WindowClosed, WindowComponents, WindowHandle,
-    WindowMode, WindowPosition, WindowResizeConstraints, WindowResolution, WindowTitle,
+    WindowMode, WindowPosition, WindowResizeConstraints, WindowResolution, WindowState,
+    WindowTitle,
 };
 use raw_window_handle::HasRawWindowHandle;
 use winit::{
@@ -215,6 +216,29 @@ pub fn update_window_position(
                 winit_window.current_monitor(),
             ) {
                 winit_window.set_outer_position(position);
+            }
+        }
+    }
+}
+
+pub fn update_window_state(
+    changed_windows: Query<(Entity, &WindowState), (With<Window>, Changed<WindowState>)>,
+    winit_windows: NonSendMut<WinitWindows>,
+) {
+    for (entity, state) in changed_windows.iter() {
+        if let Some(winit_window) = winit_windows.get_window(entity) {
+            match state {
+                WindowState::Normal => {
+                    winit_window.set_minimized(false);
+                    winit_window.set_maximized(false);
+                }
+                WindowState::Maximized => {
+                    // should we call `set_minimized(false)` here?
+                    winit_window.set_maximized(true);
+                }
+                WindowState::Minimized => {
+                    winit_window.set_minimized(true);
+                }
             }
         }
     }

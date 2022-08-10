@@ -3,7 +3,6 @@ use bevy_utils::{tracing::warn, HashMap};
 use bevy_window::{WindowComponentsItem, WindowMode, WindowPosition, WindowResolution};
 use winit::{
     dpi::{LogicalPosition, LogicalSize, PhysicalPosition},
-    event_loop::{EventLoop, EventLoopWindowTarget},
     monitor::MonitorHandle,
 };
 

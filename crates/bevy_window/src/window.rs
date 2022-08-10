@@ -608,10 +608,10 @@ impl WindowTransparency {
 #[derive(Default, Component, Debug, Copy, Clone, PartialEq, Eq, Reflect)]
 #[reflect(Component)]
 pub enum WindowState {
-    /// The window is floating, this mostly just means that it is
-    /// neither maximized nor minimized.
+    /// The window is neither maximized nor minimized. Usually the
+    /// default state of a window.
     #[default]
-    Floating,
+    Normal,
 
     /// The window is minimized to the task bar, but the program is
     /// still running.

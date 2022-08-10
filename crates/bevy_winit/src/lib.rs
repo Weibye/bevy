@@ -10,7 +10,8 @@ use core::panic;
 use bevy_ecs::system::{SystemParam, SystemState};
 use system::{
     create_window_system, update_cursor, update_cursor_position, update_resize_constraints,
-    update_resolution, update_title, update_window_mode, update_window_position, window_destroyed,
+    update_resolution, update_title, update_window_mode, update_window_position,
+    update_window_state, window_destroyed,
 };
 
 pub use winit_config::*;
@@ -59,6 +60,7 @@ impl Plugin for WinitPlugin {
                     .label(ModifiesWindows)
                     .with_system(update_title)
                     .with_system(update_window_mode)
+                    .with_system(update_window_state)
                     .with_system(update_window_position)
                     .with_system(update_resolution)
                     .with_system(update_cursor)
