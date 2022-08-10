@@ -6,9 +6,9 @@ use bevy_ecs::{
     prelude::{Bundle, Component, ReflectComponent},
     query::WorldQuery,
 };
-use bevy_math::{DVec2, IVec2, UVec2, Vec2};
+use bevy_math::{DVec2, IVec2};
 use bevy_reflect::{FromReflect, Reflect};
-use bevy_utils::{tracing::warn, Uuid};
+use bevy_utils::tracing::warn;
 use raw_window_handle::RawWindowHandle;
 
 use crate::raw_window_handle::RawWindowHandleWrapper;

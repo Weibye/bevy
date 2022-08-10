@@ -21,12 +21,7 @@ pub mod prelude {
 }
 
 use bevy_app::prelude::*;
-use bevy_ecs::{
-    entity::Entity,
-    event::Events,
-    schedule::{ParallelSystemDescriptorCoercion, SystemLabel, SystemStage},
-    system::{Command, Commands, ResMut, Resource, SystemState},
-};
+use bevy_ecs::{entity::Entity, schedule::SystemLabel, system::Resource};
 
 /// The configuration information for the [`WindowPlugin`].
 ///

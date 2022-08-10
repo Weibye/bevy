@@ -35,7 +35,6 @@ pub mod prelude {
 
 use bevy_window::{PrimaryWindow, Window, WindowHandle};
 pub use once_cell;
-use settings::WgpuSettings;
 
 use crate::{
     camera::CameraPlugin,

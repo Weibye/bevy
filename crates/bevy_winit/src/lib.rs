@@ -8,7 +8,6 @@ mod winit_windows;
 use core::panic;
 
 use bevy_ecs::system::{SystemParam, SystemState};
-use bevy_utils::tracing::info;
 use system::{
     create_window_system, update_cursor, update_cursor_position, update_resize_constraints,
     update_resolution, update_title, update_window_mode, update_window_position,
@@ -34,8 +33,8 @@ use bevy_utils::{
 use bevy_window::{
     CursorEntered, CursorLeft, CursorMoved, FileDragAndDrop, ModifiesWindows, ReceivedCharacter,
     RequestRedraw, Window, WindowBackendScaleFactorChanged, WindowCloseRequested, WindowComponents,
-    WindowComponentsMut, WindowComponentsMutItem, WindowFocus, WindowFocused, WindowMoved,
-    WindowResized, WindowScaleFactorChanged, WindowState,
+    WindowComponentsMut, WindowFocus, WindowFocused, WindowMoved, WindowResized,
+    WindowScaleFactorChanged, WindowState,
 };
 
 use winit::{
