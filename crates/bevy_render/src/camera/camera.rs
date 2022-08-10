@@ -382,21 +382,21 @@ pub fn camera_system<T: CameraProjection + Component>(
     // handle resize events. latest events are handled first because we only want to resize each
     // window once
     for event in window_resized_events.iter().rev() {
-        if changed_window_ids.contains(&event.entity) {
+        if changed_window_ids.contains(&event.window) {
             continue;
         }
 
-        changed_window_ids.push(event.entity);
+        changed_window_ids.push(event.window);
     }
 
     // handle resize events. latest events are handled first because we only want to resize each
     // window once
     for event in window_created_events.iter().rev() {
-        if changed_window_ids.contains(&event.entity) {
+        if changed_window_ids.contains(&event.window) {
             continue;
         }
 
-        changed_window_ids.push(event.entity);
+        changed_window_ids.push(event.window);
     }
 
     let changed_image_handles: HashSet<&Handle<Image>> = image_asset_events

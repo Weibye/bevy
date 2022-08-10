@@ -6,8 +6,7 @@ use bevy_math::{IVec2, Vec2};
 /// A window event that is sent whenever a window's logical size has changed.
 #[derive(Debug, Clone)]
 pub struct WindowResized {
-    pub entity: Entity,
-    /// The new logical width of the window
+    pub window: Entity,
     pub width: f64,
     /// The new logical height of the window.
     pub height: f64,
@@ -25,7 +24,7 @@ pub struct RequestRedraw;
 /// event will be sent in the handler for that event.
 #[derive(Debug, Clone)]
 pub struct WindowCreated {
-    pub entity: Entity,
+    pub window: Entity,
 }
 
 /// An event that is sent whenever the operating systems requests that a window
@@ -40,14 +39,14 @@ pub struct WindowCreated {
 /// [`Window`]: crate::Window
 #[derive(Debug, Clone)]
 pub struct WindowCloseRequested {
-    pub entity: Entity,
+    pub window: Entity,
 }
 
 /// An event that is sent whenever a window is closed. This will be sent by the
 /// handler for [`WindowCloseRequested`] or similar.
 #[derive(Debug, Clone)]
 pub struct WindowClosed {
-    pub entity: Entity,
+    pub window: Entity,
 }
 /// An event reporting that the mouse cursor has moved on a window.
 ///
@@ -61,7 +60,7 @@ pub struct WindowClosed {
 #[derive(Debug, Clone)]
 pub struct CursorMoved {
     /// Window that the cursor moved inside.
-    pub entity: Entity,
+    pub window: Entity,
     /// The cursor position in logical pixels.
     pub position: Vec2,
 }
@@ -70,21 +69,21 @@ pub struct CursorMoved {
 #[derive(Debug, Clone)]
 pub struct CursorEntered {
     /// Window that the cursor entered.
-    pub entity: Entity,
+    pub window: Entity,
 }
 
 /// An event that is sent whenever the user's cursor leaves a window.
 #[derive(Debug, Clone)]
 pub struct CursorLeft {
     /// Window that the cursor left.
-    pub entity: Entity,
+    pub window: Entity,
 }
 
 /// An event that is sent whenever a window receives a character from the OS or underlying system.
 #[derive(Debug, Clone)]
 pub struct ReceivedCharacter {
     /// Window that received the character.
-    pub entity: Entity,
+    pub window: Entity,
     pub char: char,
 }
 
@@ -92,7 +91,7 @@ pub struct ReceivedCharacter {
 #[derive(Debug, Clone)]
 pub struct WindowFocused {
     /// Window that changed focus.
-    pub entity: Entity,
+    pub window: Entity,
     /// Whether it was focused (true) or lost focused (false).
     pub focused: bool,
 }
@@ -101,7 +100,7 @@ pub struct WindowFocused {
 #[derive(Debug, Clone)]
 pub struct WindowScaleFactorChanged {
     /// Window that had it's scale factor changed.
-    pub entity: Entity,
+    pub window: Entity,
     /// The new scale factor.
     pub scale_factor: f64,
 }
@@ -109,7 +108,7 @@ pub struct WindowScaleFactorChanged {
 /// An event that indicates a window's OS-reported scale factor has changed.
 #[derive(Debug, Clone)]
 pub struct WindowBackendScaleFactorChanged {
-    pub entity: Entity,
+    pub window: Entity,
     pub scale_factor: f64,
 }
 
@@ -118,21 +117,21 @@ pub struct WindowBackendScaleFactorChanged {
 pub enum FileDragAndDrop {
     DroppedFile {
         /// Window the file was dropped into.
-        entity: Entity,
+        window: Entity,
         /// Path to the file that was dropped in.
         path_buf: PathBuf,
     },
 
     HoveredFile {
         /// Window a file is possibly going to be dropped into.
-        entity: Entity,
+        window: Entity,
         /// Path to the file that might be dropped in.
         path_buf: PathBuf,
     },
 
     HoveredFileCancelled {
         /// Window that had a cancelled file drop.
-        entity: Entity,
+        window: Entity,
     },
 }
 

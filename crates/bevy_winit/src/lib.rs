@@ -339,7 +339,7 @@ pub fn winit_runner(mut app: App) {
 
                             // Send event to notify change
                             window_events.window_resized.send(WindowResized {
-                                entity: window_entity,
+                                window: window_entity,
                                 width: window.resolution.width(),
                                 height: window.resolution.height(),
                             });
@@ -352,7 +352,7 @@ pub fn winit_runner(mut app: App) {
                         window_events
                             .window_close_requested
                             .send(WindowCloseRequested {
-                                entity: window_entity,
+                                window: window_entity,
                             });
                     }
                     WindowEvent::KeyboardInput { ref input, .. } => {
@@ -376,7 +376,7 @@ pub fn winit_runner(mut app: App) {
 
                             // Event
                             cursor_events.cursor_moved.send(CursorMoved {
-                                entity: window_entity,
+                                window: window_entity,
                                 position: (physical_position / window.resolution.scale_factor())
                                     .as_vec2(),
                             });
@@ -389,7 +389,7 @@ pub fn winit_runner(mut app: App) {
                     }
                     WindowEvent::CursorEntered { .. } => {
                         cursor_events.cursor_entered.send(CursorEntered {
-                            entity: window_entity,
+                            window: window_entity,
                         });
                     }
                     WindowEvent::CursorLeft { .. } => {
@@ -399,7 +399,7 @@ pub fn winit_runner(mut app: App) {
 
                             // Event
                             cursor_events.cursor_left.send(CursorLeft {
-                                entity: window_entity,
+                                window: window_entity,
                             });
                         } else {
                             warn!(
@@ -454,7 +454,7 @@ pub fn winit_runner(mut app: App) {
                     }
                     WindowEvent::ReceivedCharacter(c) => {
                         input_events.character_input.send(ReceivedCharacter {
-                            entity: window_entity,
+                            window: window_entity,
                             char: c,
                         });
                     }
@@ -464,7 +464,7 @@ pub fn winit_runner(mut app: App) {
                     } => {
                         window_events.window_backend_scale_factor_changed.send(
                             WindowBackendScaleFactorChanged {
-                                entity: window_entity,
+                                window: window_entity,
                                 scale_factor,
                             },
                         );
@@ -493,7 +493,7 @@ pub fn winit_runner(mut app: App) {
                             // Trigger a change event if they are approximately different
                             window_events.window_scale_factor_changed.send(
                                 WindowScaleFactorChanged {
-                                    entity: window_entity,
+                                    window: window_entity,
                                     scale_factor,
                                 },
                             );
@@ -505,7 +505,7 @@ pub fn winit_runner(mut app: App) {
                             || approx::relative_ne!(window.resolution.height(), new_logical_height)
                         {
                             window_events.window_resized.send(WindowResized {
-                                entity: window_entity,
+                                window: window_entity,
                                 width: new_logical_width,
                                 height: new_logical_height,
                             });
@@ -524,25 +524,25 @@ pub fn winit_runner(mut app: App) {
 
                         // Event
                         window_events.window_focused.send(WindowFocused {
-                            entity: window_entity,
+                            window: window_entity,
                             focused,
                         });
                     }
                     WindowEvent::DroppedFile(path_buf) => {
                         file_drag_and_drop_events.send(FileDragAndDrop::DroppedFile {
-                            entity: window_entity,
+                            window: window_entity,
                             path_buf,
                         });
                     }
                     WindowEvent::HoveredFile(path_buf) => {
                         file_drag_and_drop_events.send(FileDragAndDrop::HoveredFile {
-                            entity: window_entity,
+                            window: window_entity,
                             path_buf,
                         });
                     }
                     WindowEvent::HoveredFileCancelled => {
                         file_drag_and_drop_events.send(FileDragAndDrop::HoveredFileCancelled {
-                            entity: window_entity,
+                            window: window_entity,
                         });
                     }
                     WindowEvent::Moved(position) => {
