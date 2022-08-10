@@ -1,9 +1,11 @@
 use bevy_ecs::entity::Entity;
-use bevy_math::IVec2;
 use bevy_utils::{tracing::warn, HashMap};
-use bevy_window::{Window, WindowComponents, WindowComponentsItem, WindowMode};
-use raw_window_handle::HasRawWindowHandle;
-use winit::dpi::{LogicalPosition, LogicalSize, PhysicalPosition};
+use bevy_window::{WindowComponentsItem, WindowMode, WindowPosition, WindowResolution};
+use winit::{
+    dpi::{LogicalPosition, LogicalSize, PhysicalPosition},
+    event_loop::{EventLoop, EventLoopWindowTarget},
+    monitor::MonitorHandle,
+};
 
 #[derive(Debug, Default)]
 pub struct WinitWindows {
@@ -42,68 +44,22 @@ impl WinitWindows {
                 )),
             )),
             _ => {
-                use bevy_window::WindowPosition::*;
                 let resolution = &components.resolution;
 
-                match components.position {
-                    Automatic => { /* Window manager will handle position */ }
-                    Centered(monitor_selection) => {
-                        use bevy_window::MonitorSelection::*;
-                        let maybe_monitor = match monitor_selection {
-                            Current => {
-                                warn!("Can't select current monitor on window creation!");
-                                None
-                            }
-                            Primary => event_loop.primary_monitor(),
-                            Number(n) => event_loop.available_monitors().nth(*n),
-                        };
-
-                        if let Some(monitor) = maybe_monitor {
-                            let screen_size = monitor.size();
-
-                            let scale_factor = resolution.scale_factor();
-
-                            // Logical to physical window size
-                            let (width, height): (u32, u32) =
-                                LogicalSize::new(resolution.width(), resolution.height())
-                                    .to_physical::<u32>(scale_factor)
-                                    .into();
-
-                            let position = PhysicalPosition {
-                                x: screen_size.width.saturating_sub(width) as f64 / 2.
-                                    + monitor.position().x as f64,
-                                y: screen_size.height.saturating_sub(height) as f64 / 2.
-                                    + monitor.position().y as f64,
-                            };
-
-                            winit_window_builder = winit_window_builder.with_position(position);
-                        } else {
-                            warn!("Couldn't get monitor selected with: {monitor_selection:?}");
-                        }
-                    }
-                    At(position) => {
-                        if let Some(sf) = components.resolution.scale_factor_override() {
-                            winit_window_builder = winit_window_builder.with_position(
-                                LogicalPosition::new(position[0] as f64, position[1] as f64)
-                                    .to_physical::<f64>(sf),
-                            );
-                        } else {
-                            winit_window_builder = winit_window_builder.with_position(
-                                LogicalPosition::new(position[0] as f64, position[1] as f64),
-                            );
-                        }
-                    }
+                if let Some(position) = winit_window_position(
+                    components.position,
+                    &components.resolution,
+                    event_loop.available_monitors(),
+                    event_loop.primary_monitor(),
+                    None,
+                ) {
+                    winit_window_builder = winit_window_builder.with_position(position);
                 }
 
-                if let Some(sf) = resolution.scale_factor_override() {
-                    winit_window_builder.with_inner_size(
-                        LogicalSize::new(resolution.width(), resolution.height())
-                            .to_physical::<f64>(sf),
-                    )
-                } else {
-                    winit_window_builder
-                        .with_inner_size(LogicalSize::new(resolution.width(), resolution.height()))
-                }
+                winit_window_builder.with_inner_size(
+                    LogicalSize::new(resolution.width(), resolution.height())
+                        .to_physical::<f64>(resolution.scale_factor()),
+                )
             }
             .with_resizable(components.resizable.resizable())
             .with_decorations(components.decorations.decorated())
@@ -193,19 +149,23 @@ impl WinitWindows {
         created_window
     }
 
-    // TODO: Docs
+    /// Get the winit window that is associated with our entity.
     pub fn get_window(&self, entity: Entity) -> Option<&winit::window::Window> {
         self.window_id_to_winit
             .get(&entity)
             .and_then(|winit_id| self.windows.get(winit_id))
     }
 
-    // TODO: Docs
+    /// Get the entity associated with the winit window id.
+    ///
+    /// This is mostly just an intermediary step between us and winit.
     pub fn get_window_entity(&self, winit_id: winit::window::WindowId) -> Option<Entity> {
         self.winit_to_window_id.get(&winit_id).cloned()
     }
 
-    // TODO: Docs
+    /// Remove a window from winit.
+    ///
+    /// This should mostly just be called when the window is closing.
     pub fn remove_window(&mut self, entity: Entity) -> Option<winit::window::Window> {
         let winit_id = self.window_id_to_winit.remove(&entity)?;
         // Don't remove from winit_to_window_id, to track that we used to know about this winit window
@@ -257,6 +217,68 @@ pub fn get_best_videomode(monitor: &winit::monitor::MonitorHandle) -> winit::mon
     });
 
     modes.first().unwrap().clone()
+}
+
+// Ideally we could generify this across window backends, but we only really have winit atm
+// so whatever.
+//
+// Also ends up bringing to question the standardization of physical/logical position/sizes
+// into specific types so we don't run into weird cross bugs where we use a logical position
+// in a physical context.
+pub fn winit_window_position(
+    position: &WindowPosition,
+    resolution: &WindowResolution,
+    mut available_monitors: impl Iterator<Item = MonitorHandle>,
+    primary_monitor: Option<MonitorHandle>,
+    current_monitor: Option<MonitorHandle>,
+) -> Option<PhysicalPosition<f64>> {
+    match position {
+        WindowPosition::Automatic => {
+            /* Window manager will handle position */
+            None
+        }
+        WindowPosition::Centered(monitor_selection) => {
+            use bevy_window::MonitorSelection::*;
+            let maybe_monitor = match monitor_selection {
+                Current => {
+                    if let None = current_monitor {
+                        warn!("Can't select current monitor on window creation or cannot find current monitor!");
+                    }
+                    current_monitor
+                }
+                Primary => primary_monitor,
+                Number(n) => available_monitors.nth(*n),
+            };
+
+            if let Some(monitor) = maybe_monitor {
+                let screen_size = monitor.size();
+
+                let scale_factor = resolution.scale_factor();
+
+                // Logical to physical window size
+                let (width, height): (u32, u32) =
+                    LogicalSize::new(resolution.width(), resolution.height())
+                        .to_physical::<u32>(scale_factor)
+                        .into();
+
+                let position = PhysicalPosition {
+                    x: screen_size.width.saturating_sub(width) as f64 / 2.
+                        + monitor.position().x as f64,
+                    y: screen_size.height.saturating_sub(height) as f64 / 2.
+                        + monitor.position().y as f64,
+                };
+
+                Some(position)
+            } else {
+                warn!("Couldn't get monitor selected with: {monitor_selection:?}");
+                None
+            }
+        }
+        WindowPosition::At(position) => Some(
+            LogicalPosition::new(position[0] as f64, position[1] as f64)
+                .to_physical::<f64>(resolution.scale_factor()),
+        ),
+    }
 }
 
 // WARNING: this only works under the assumption that wasm runtime is single threaded

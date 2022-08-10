@@ -321,18 +321,7 @@ impl WindowPosition {
         Self::At(position)
     }
 
-    /// The window's client position in physical pixels.
-    #[inline]
-    pub fn position(&self) -> Option<IVec2> {
-        match self {
-            Self::At(position) => Some(*position),
-            _ => None,
-        }
-    }
-
-    #[allow(missing_docs)]
-    #[inline]
-    pub fn update_actual_position_from_backend(&mut self, position: IVec2) {
+    pub fn set(&mut self, position: IVec2) {
         *self = WindowPosition::At(position);
     }
 }

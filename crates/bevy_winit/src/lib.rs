@@ -550,9 +550,7 @@ pub fn winit_runner(mut app: App) {
                         let mut window = window_query
                             .get_mut(window_entity)
                             .expect("Window should have a WindowPosition component");
-                        window
-                            .position
-                            .update_actual_position_from_backend(position);
+                        window.position.set(position);
 
                         // Event
                         window_events.window_moved.send(WindowMoved {

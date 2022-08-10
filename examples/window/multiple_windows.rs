@@ -62,23 +62,21 @@ fn setup_second_window(mut commands: Commands) {
         ..default()
     });
 
-    /*
-        let window_id = commands
-            .spawn()
-            .insert_bundle(WindowBundle {
-                title: WindowTitle::new("Third window"),
-                ..Default::default()
-            })
-            .id();
+    let window_id = commands
+        .spawn()
+        .insert_bundle(WindowBundle {
+            title: WindowTitle::new("Third window"),
+            ..Default::default()
+        })
+        .id();
 
-        // third window camera
-        commands.spawn_bundle(Camera3dBundle {
-            transform: Transform::from_xyz(-6.0, 0.0, 0.0).looking_at(Vec3::ZERO, Vec3::Y),
-            camera: Camera {
-                target: RenderTarget::Window(window_id),
-                ..default()
-            },
+    // third window camera
+    commands.spawn_bundle(Camera3dBundle {
+        transform: Transform::from_xyz(-6.0, 0.0, 0.0).looking_at(Vec3::ZERO, Vec3::Y),
+        camera: Camera {
+            target: RenderTarget::Window(window_id),
             ..default()
-      });
-    */
+        },
+        ..default()
+    });
 }

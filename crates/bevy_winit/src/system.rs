@@ -2,7 +2,7 @@ use bevy_ecs::{
     entity::Entity,
     event::EventReader,
     prelude::{Added, Changed, With},
-    system::{Commands, Local, NonSendMut, Query, Res},
+    system::{Commands, NonSendMut, Query, Res},
 };
 use bevy_utils::tracing::{error, info};
 use bevy_window::{
@@ -11,7 +11,7 @@ use bevy_window::{
 };
 use raw_window_handle::HasRawWindowHandle;
 use winit::{
-    dpi::{LogicalPosition, LogicalSize, PhysicalPosition},
+    dpi::{LogicalSize, PhysicalPosition},
     event_loop::EventLoopWindowTarget,
 };
 
@@ -36,7 +36,6 @@ pub fn create_window_system(
         info!("Creating a new window: {:?}", window_entity);
 
         let winit_window = winit_windows.create_window(&event_loop, window_entity, &components);
-        info!("winit window: {:?}", window_entity);
 
         commands
             .entity(window_entity)
@@ -145,7 +144,7 @@ pub fn update_cursor_position(
                     // Flip the coordinate space back to winit's context.
                     inner_size.height as f64 - physical_position.y,
                 );
-                info!("new cursor position: {:?}", position);
+
                 if let Err(err) = winit_window.set_cursor_position(position) {
                     error!("could not set cursor position: {:?}", err);
                 }
@@ -200,22 +199,22 @@ pub fn update_resize_constraints(
 }
 
 pub fn update_window_position(
-    changed_windows: Query<(Entity, &WindowPosition), (With<Window>, Changed<WindowPosition>)>,
+    changed_windows: Query<
+        (Entity, &WindowPosition, &WindowResolution),
+        (With<Window>, Changed<WindowPosition>),
+    >,
     winit_windows: NonSendMut<WinitWindows>,
 ) {
-    for (entity, position) in changed_windows.iter() {
+    for (entity, position, resolution) in changed_windows.iter() {
         if let Some(winit_window) = winit_windows.get_window(entity) {
-            match position {
-                WindowPosition::At(position) => {
-                    winit_window.set_outer_position(PhysicalPosition {
-                        x: position[0],
-                        y: position[1],
-                    });
-                }
-                WindowPosition::Automatic => {}
-                WindowPosition::Centered(monitor) => {
-                    // TODO: figure out what to do here if anything
-                }
+            if let Some(position) = crate::winit_window_position(
+                position,
+                resolution,
+                winit_window.available_monitors(),
+                winit_window.primary_monitor(),
+                winit_window.current_monitor(),
+            ) {
+                winit_window.set_outer_position(position);
             }
         }
     }
