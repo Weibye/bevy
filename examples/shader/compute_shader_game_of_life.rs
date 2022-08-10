@@ -13,7 +13,7 @@ use bevy::{
         renderer::{RenderContext, RenderDevice},
         RenderApp, RenderStage,
     },
-    window::WindowDescriptor,
+    window::WindowBundle,
 };
 use std::borrow::Cow;
 
@@ -23,7 +23,7 @@ const WORKGROUP_SIZE: u32 = 8;
 fn main() {
     App::new()
         .insert_resource(ClearColor(Color::BLACK))
-        .insert_resource(WindowDescriptor {
+        .insert_resource(WindowBundle {
             // uncomment for unthrottled FPS
             // present_mode: bevy::window::PresentMode::AutoNoVsync,
             ..default()

@@ -19,7 +19,7 @@ use bevy::{
 
 fn main() {
     App::new()
-        .insert_resource(WindowDescriptor {
+        .insert_resource(WindowBundle {
             present_mode: PresentMode::AutoNoVsync,
             ..default()
         })

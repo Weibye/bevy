@@ -13,10 +13,9 @@ use rand::{thread_rng, Rng};
 
 fn main() {
     App::new()
-        .insert_resource(WindowDescriptor {
-            width: 1024.0,
-            height: 768.0,
-            title: "many_lights".to_string(),
+        .insert_resource(WindowBundle {
+            resolution: (1024.0, 768.0).into(),
+            title: "many_lights".into(),
             present_mode: PresentMode::AutoNoVsync,
             ..default()
         })

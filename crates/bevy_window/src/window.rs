@@ -273,7 +273,7 @@ impl CursorPosition {
 
     /// The current mouse position, in physical pixels.
     #[inline]
-    pub fn position(&self) -> Option<DVec2> {
+    pub fn physical_position(&self) -> Option<DVec2> {
         self.physical_cursor_position
     }
 
@@ -382,6 +382,21 @@ impl WindowResolution {
             requested_height,
             physical_width: requested_width as u32,
             physical_height: requested_height as u32,
+            ..Default::default()
+        }
+    }
+
+    pub fn new_with_scale_factor_override(
+        requested_width: f64,
+        requested_height: f64,
+        scale_factor_override: f64,
+    ) -> Self {
+        Self {
+            requested_width,
+            requested_height,
+            physical_width: requested_width as u32,
+            physical_height: requested_height as u32,
+            scale_factor_override: Some(scale_factor_override),
             ..Default::default()
         }
     }

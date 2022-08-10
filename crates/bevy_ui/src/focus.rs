@@ -91,7 +91,7 @@ pub fn ui_focus_system(
     let cursor_position = cursor_positions
         .get(primary_window.window)
         .expect("Primary window should have a valid WindowCursorPosition component")
-        .position();
+        .physical_position();
 
     // reset entities that were both clicked and released in the last frame
     for entity in state.entities_to_reset.drain(..) {

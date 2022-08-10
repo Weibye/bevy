@@ -1,7 +1,11 @@
 //! A test to confirm that `bevy` allows setting the window to arbitrary small sizes
 //! This is run in CI to ensure that this doesn't regress again.
 
-use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*, window::PrimaryWindow};
+use bevy::{
+    core_pipeline::clear_color::ClearColorConfig,
+    prelude::*,
+    window::{PrimaryWindow, WindowResolution},
+};
 
 // The smallest size reached is 1x1, as X11 doesn't support windows with a 0 dimension
 // TODO: Add a check for platforms other than X11 for 0xk and kx0, despite those currently unsupported on CI.
@@ -19,10 +23,12 @@ struct Dimensions {
 
 fn main() {
     App::new()
-        .insert_resource(WindowDescriptor {
-            width: MAX_WIDTH.try_into().unwrap(),
-            height: MAX_HEIGHT.try_into().unwrap(),
-            scale_factor_override: Some(1.),
+        .insert_resource(WindowBundle {
+            resolution: WindowResolution::new_with_scale_factor_override(
+                MAX_WIDTH as f64,
+                MAX_HEIGHT as f64,
+                1.0,
+            ),
             title: "Resizing".into(),
             ..Default::default()
         })
@@ -99,11 +105,11 @@ fn change_window_size(
 fn sync_dimensions(
     dim: Res<Dimensions>,
     primary: ResMut<PrimaryWindow>,
-    resolution: Query<&mut WindowResolution>,
+    mut resolution: Query<&mut WindowResolution>,
 ) {
     if dim.is_changed() {
-        if let Some(resolution) = resolution.get_mut(primary.window) {
-            resolution.set();
+        if let Ok(mut resolution) = resolution.get_mut(primary.window) {
+            resolution.set_requested_resolution(dim.width as f64, dim.height as f64);
         }
     }
 }

@@ -364,11 +364,11 @@ pub fn winit_runner(mut app: App) {
                         if let Ok(mut window) = window_query.get_mut(window_entity) {
                             // Components
 
-                            // TODO: Why is this necessary? Improve comment as to why
-                            // move origin to bottom left
-                            let y_position = inner_size.height as f64 - position.y;
-
-                            let physical_position = DVec2::new(position.x, y_position);
+                            let physical_position = DVec2::new(
+                                position.x,
+                                // Flip the coordinate space from winit's context to our context.
+                                inner_size.height as f64 - position.y,
+                            );
 
                             window.cursor_position.set(Some(physical_position));
 

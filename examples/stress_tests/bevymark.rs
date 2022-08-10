@@ -29,12 +29,10 @@ struct Bird {
 
 fn main() {
     App::new()
-        .insert_resource(WindowDescriptor {
-            title: "BevyMark".to_string(),
-            width: 800.,
-            height: 600.,
+        .insert_resource(WindowBundle {
+            title: "BevyMark".into(),
+            resolution: (800., 600.).into(),
             present_mode: PresentMode::AutoNoVsync,
-            resizable: true,
             ..default()
         })
         .add_plugins(DefaultPlugins)

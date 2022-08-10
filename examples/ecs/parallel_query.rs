@@ -49,8 +49,8 @@ fn bounce_system(
     let resolution = resolutions
         .get(primary_window.window)
         .expect("Primary windows should have a valid WindowResolution component");
-    let width = resolution.width();
-    let height = resolution.height();
+    let width = resolution.width() as f32;
+    let height = resolution.height() as f32;
     let left = width / -2.0;
     let right = width / 2.0;
     let bottom = height / -2.0;

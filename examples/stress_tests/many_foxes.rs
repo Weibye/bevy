@@ -16,8 +16,8 @@ struct Foxes {
 
 fn main() {
     App::new()
-        .insert_resource(WindowDescriptor {
-            title: "🦊🦊🦊 Many Foxes! 🦊🦊🦊".to_string(),
+        .insert_resource(WindowBundle {
+            title: "🦊🦊🦊 Many Foxes! 🦊🦊🦊".into(),
             present_mode: PresentMode::AutoNoVsync,
             ..default()
         })

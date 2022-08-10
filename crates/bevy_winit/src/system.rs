@@ -137,12 +137,15 @@ pub fn update_cursor_position(
 ) {
     for (entity, cursor_position) in changed_windows.iter() {
         if let Some(winit_window) = winit_windows.get_window(entity) {
-            if let Some(position) = cursor_position.position() {
-                let inner_size = winit_window
-                    .inner_size()
-                    .to_logical::<f64>(winit_window.scale_factor());
+            if let Some(physical_position) = cursor_position.physical_position() {
+                let inner_size = winit_window.inner_size();
 
-                let position = LogicalPosition::new(position.x, inner_size.height - position.y);
+                let position = PhysicalPosition::new(
+                    physical_position.x,
+                    // Flip the coordinate space back to winit's context.
+                    inner_size.height as f64 - physical_position.y,
+                );
+                info!("new cursor position: {:?}", position);
                 if let Err(err) = winit_window.set_cursor_position(position) {
                     error!("could not set cursor position: {:?}", err);
                 }
@@ -159,9 +162,10 @@ pub fn update_cursor(
         if let Some(winit_window) = winit_windows.get_window(entity) {
             winit_window.set_cursor_icon(converters::convert_cursor_icon(cursor.icon()));
 
-            winit_window
-                .set_cursor_grab(cursor.locked())
-                .unwrap_or_else(|e| error!("Unable to un/grab cursor: {}", e));
+            if let Err(err) = winit_window.set_cursor_grab(cursor.locked()) {
+                let err_desc = if cursor.locked() { "grab" } else { "ungrab" };
+                error!("Unable to {} cursor: {}", err_desc, err);
+            }
 
             winit_window.set_cursor_visible(cursor.visible());
         }

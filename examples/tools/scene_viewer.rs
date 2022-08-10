@@ -49,8 +49,8 @@ Controls:
         asset_folder: std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_string()),
         watch_for_changes: true,
     })
-    .insert_resource(WindowDescriptor {
-        title: "bevy scene viewer".to_string(),
+    .insert_resource(WindowBundle {
+        title: "bevy scene viewer".into(),
         ..default()
     })
     .init_resource::<CameraTracker>()
