@@ -142,15 +142,10 @@ impl WinitWindows {
             }
         }
 
-        // TODO: Might be more elegant ways to get return the reference of the winit-window
-        let id = winit_window.id();
-        self.windows.insert(winit_window.id(), winit_window);
-        let created_window = self
-            .windows
-            .get(&id)
-            .expect("Winit should alway have the window it just created");
-
-        created_window
+        self.windows
+            .entry(winit_window.id())
+            .insert(winit_window)
+            .into_mut()
     }
 
     /// Get the winit window that is associated with our entity.
