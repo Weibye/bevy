@@ -67,7 +67,7 @@ pub struct State {
 /// Entities with a hidden [`ComputedVisibility`] are always treated as released.
 pub fn ui_focus_system(
     mut state: Local<State>,
-    primary_window: Res<PrimaryWindow>,
+    primary_window: Option<Res<PrimaryWindow>>,
     cursor_positions: Query<&CursorPosition, With<Window>>,
     mouse_button_input: Res<Input<MouseButton>>,
     touches_input: Res<Touches>,
@@ -81,10 +81,15 @@ pub fn ui_focus_system(
         Option<&ComputedVisibility>,
     )>,
 ) {
-    let primary_window_id = primary_window.as_ref().window;
+    let primary_window = if let Some(primary_window) = primary_window {
+        primary_window
+    } else {
+        bevy_log::error!("No primary window found");
+        return;
+    };
 
     let cursor_position = cursor_positions
-        .get(primary_window_id)
+        .get(primary_window.window)
         .expect("Primary window should have a valid WindowCursorPosition component")
         .position();
 

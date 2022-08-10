@@ -26,7 +26,7 @@ fn main() {
             ..default()
         })
         // Turn off vsync to maximize CPU/GPU usage
-        .insert_resource(WindowDescriptor {
+        .insert_resource(WindowBundle {
             present_mode: PresentMode::AutoNoVsync,
             ..default()
         })

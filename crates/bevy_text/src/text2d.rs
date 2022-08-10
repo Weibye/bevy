@@ -71,7 +71,7 @@ pub fn extract_text2d_sprite(
     mut extracted_sprites: ResMut<ExtractedSprites>,
     texture_atlases: Extract<Res<Assets<TextureAtlas>>>,
     text_pipeline: Extract<Res<DefaultTextPipeline>>,
-    primary_window: Extract<Res<PrimaryWindow>>,
+    primary_window: Extract<Option<Res<PrimaryWindow>>>,
     windows: Extract<Query<&WindowResolution, With<Window>>>,
     text2d_query: Extract<
         Query<(
@@ -83,6 +83,13 @@ pub fn extract_text2d_sprite(
         )>,
     >,
 ) {
+    let primary_window = if let Some(primary_window) = &*primary_window {
+        primary_window
+    } else {
+        bevy_log::error!("No primary window found");
+        return;
+    };
+
     let resolution = windows
         .get(primary_window.window)
         .expect("Primary windows should have a valid WindowResolution component");
@@ -156,7 +163,7 @@ pub fn update_text2d_layout(
     mut queue: Local<HashSet<Entity>>,
     mut textures: ResMut<Assets<Image>>,
     fonts: Res<Assets<Font>>,
-    primary_window: Res<PrimaryWindow>,
+    primary_window: Option<Res<PrimaryWindow>>,
     windows: Query<&WindowResolution, With<Window>>,
     mut scale_factor_changed: EventReader<WindowScaleFactorChanged>,
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
@@ -172,6 +179,13 @@ pub fn update_text2d_layout(
 ) {
     // We need to consume the entire iterator, hence `last`
     let factor_changed = scale_factor_changed.iter().last().is_some();
+
+    let primary_window = if let Some(primary_window) = primary_window {
+        primary_window
+    } else {
+        bevy_log::error!("No primary window found");
+        return;
+    };
 
     let resolution = windows
         .get(primary_window.window)

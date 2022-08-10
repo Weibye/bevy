@@ -6,7 +6,7 @@
 
 use bevy::{
     prelude::*,
-    window::{WindowBundle, WindowTransparent, WindowUndecorated},
+    window::{WindowBundle, WindowDecorations, WindowTransparency},
 };
 
 fn main() {
@@ -15,9 +15,9 @@ fn main() {
         .insert_resource(ClearColor(Color::NONE))
         .insert_resource(WindowBundle::default())
         // Setting `transparent` allows the `ClearColor`'s alpha value to take effect
-        .insert_resource(WindowTransparent)
+        .insert_resource(WindowTransparency::Transparent)
         // Disabling window decorations to make it feel more like a widget than a window
-        .insert_resource(WindowUndecorated)
+        .insert_resource(WindowDecorations::Undecorated)
         .add_startup_system(setup)
         .add_plugins(DefaultPlugins)
         .run();

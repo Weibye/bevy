@@ -25,16 +25,23 @@ pub fn exit_on_all_closed(mut app_exit_events: EventWriter<AppExit>, windows: Qu
 // TODO: More docs
 pub fn exit_on_primary_closed(
     mut app_exit_events: EventWriter<AppExit>,
-    primary_window: Res<PrimaryWindow>,
+    primary_window: Option<Res<PrimaryWindow>>,
     mut window_close: EventReader<WindowClosed>,
 ) {
-    for window in window_close.iter() {
-        warn!(
-            "primary_window: {:?}, closed: {:?}",
-            primary_window.window, window.entity
-        );
-        if primary_window.window == window.entity {
-            // Primary window has been closed
+    match primary_window.as_ref() {
+        Some(primary_window) => {
+            for window in window_close.iter() {
+                warn!(
+                    "primary_window: {:?}, closed: {:?}",
+                    primary_window.window, window.entity
+                );
+                if primary_window.window == window.entity {
+                    // Primary window has been closed
+                    app_exit_events.send(AppExit);
+                }
+            }
+        }
+        None => {
             app_exit_events.send(AppExit);
         }
     }

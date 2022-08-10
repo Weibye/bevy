@@ -8,7 +8,7 @@ use bevy_ecs::{
     system::{Query, Res, ResMut, Resource},
 };
 use bevy_hierarchy::{Children, Parent};
-use bevy_log::warn;
+use bevy_log::{error, warn};
 use bevy_math::Vec2;
 use bevy_transform::components::Transform;
 use bevy_utils::HashMap;
@@ -197,7 +197,7 @@ pub enum FlexError {
 
 #[allow(clippy::too_many_arguments)]
 pub fn flex_node_system(
-    primary_window: Res<PrimaryWindow>,
+    primary_window: Option<Res<PrimaryWindow>>,
     windows: Query<(Entity, &WindowResolution), With<Window>>,
     mut scale_factor_events: EventReader<WindowScaleFactorChanged>,
     mut flex_surface: ResMut<FlexSurface>,
@@ -215,6 +215,13 @@ pub fn flex_node_system(
     for (window_id, window_resolution) in windows.iter() {
         flex_surface.update_window(window_id, window_resolution);
     }
+
+    let primary_window = if let Some(primary_window) = primary_window {
+        primary_window
+    } else {
+        bevy_log::error!("No primary window found");
+        return;
+    };
 
     // assume one window for time being...
     let (_, primary_resolution) = windows

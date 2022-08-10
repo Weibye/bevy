@@ -58,31 +58,21 @@ pub fn create_window_system(
     }
 }
 
-#[derive(Default, Debug, Clone)]
-pub struct RemoveWindowBuffer {
-    remove: Vec<Entity>,
-}
-
 pub fn window_destroyed(
     mut commands: Commands,
-    primary: Res<PrimaryWindow>,
+    primary: Option<Res<PrimaryWindow>>,
     mut closed: EventReader<WindowClosed>,
     mut winit_windows: NonSendMut<WinitWindows>,
-    mut buffer: Local<RemoveWindowBuffer>,
 ) {
-    for entity in buffer.remove.drain(..) {
-        winit_windows.remove_window(entity);
-
-        commands.entity(entity).despawn();
-        if primary.window == entity {
-            commands.remove_resource::<PrimaryWindow>();
-        }
-    }
-
-    // We buffer for a frame so that other systems clean up first
-    // regardless of ordering.
     for event in closed.iter() {
-        buffer.remove.push(event.entity);
+        winit_windows.remove_window(event.entity);
+
+        commands.entity(event.entity).despawn();
+        if let Some(ref primary) = primary {
+            if primary.window == event.entity {
+                commands.remove_resource::<PrimaryWindow>();
+            }
+        }
     }
 }
 

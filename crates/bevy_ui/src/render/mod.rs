@@ -274,7 +274,7 @@ pub fn extract_text_uinodes(
     mut extracted_uinodes: ResMut<ExtractedUiNodes>,
     texture_atlases: Extract<Res<Assets<TextureAtlas>>>,
     text_pipeline: Extract<Res<DefaultTextPipeline>>,
-    primary_window: Extract<Res<PrimaryWindow>>,
+    primary_window: Extract<Option<Res<PrimaryWindow>>>,
     windows: Extract<Query<&WindowResolution, With<Window>>>,
     uinode_query: Extract<
         Query<(
@@ -287,6 +287,13 @@ pub fn extract_text_uinodes(
         )>,
     >,
 ) {
+    let primary_window = if let Some(primary_window) = &*primary_window {
+        primary_window
+    } else {
+        bevy_log::error!("No primary window found");
+        return;
+    };
+
     let resolution = windows
         .get(primary_window.window)
         .expect("Primary windows should have a valid WindowResolution component");

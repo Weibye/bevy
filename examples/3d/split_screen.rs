@@ -95,7 +95,7 @@ fn set_camera_viewports(
     for resize_event in resize_events.iter() {
         if resize_event.entity == primary_window.window {
             let window = resolutions
-                .get(primary_window_id)
+                .get(primary_window.window)
                 .expect("Primary window should have valid resolution");
             let mut left_camera = left_camera.single_mut();
             left_camera.viewport = Some(Viewport {
