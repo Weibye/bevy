@@ -22,7 +22,8 @@ pub fn exit_on_all_closed(mut app_exit_events: EventWriter<AppExit>, windows: Qu
 /// Exit the application when the primary window has been closed
 ///
 /// This system is added by the [`WindowPlugin`]
-// TODO: More docs
+/// 
+/// [`WindowPlugin`]: crate::WindowPlugin
 pub fn exit_on_primary_closed(
     mut app_exit_events: EventWriter<AppExit>,
     primary_window: Option<Res<PrimaryWindow>>,
@@ -33,9 +34,9 @@ pub fn exit_on_primary_closed(
             for window in window_close.iter() {
                 warn!(
                     "primary_window: {:?}, closed: {:?}",
-                    primary_window.window, window.entity
+                    primary_window.window, window.window
                 );
-                if primary_window.window == window.entity {
+                if primary_window.window == window.window {
                     // Primary window has been closed
                     app_exit_events.send(AppExit);
                 }
@@ -60,7 +61,7 @@ pub fn close_when_requested(
 ) {
     for event in closed.iter() {
         window_closed.send(WindowClosed {
-            entity: event.entity,
+            window: event.window,
         });
     }
 }
@@ -79,7 +80,7 @@ pub fn close_on_esc(
         }
 
         if input.just_pressed(KeyCode::Escape) {
-            window_closed.send(WindowClosed { entity });
+            window_closed.send(WindowClosed { window: entity });
         }
     }
 }

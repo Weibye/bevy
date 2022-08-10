@@ -63,40 +63,54 @@ pub enum PresentMode {
     Fifo = 4, // NOTE: The explicit ordinal values mirror wgpu.
 }
 
-/// Defines the way a window is displayed
+/// Defines the way a window is displayed.
 #[derive(Default, Debug, Component, Clone, Copy, PartialEq, Reflect)]
 #[reflect(Component)]
 pub enum WindowMode {
-    /// Creates a window that uses the given size
+    /// Creates a window that uses the given size.
     #[default]
     Windowed,
-    /// Creates a borderless window that uses the full size of the screen
+    /// Creates a borderless window that uses the full size of the screen.
     BorderlessFullscreen,
     /// Creates a fullscreen window that will render at desktop resolution. The app will use the closest supported size
     /// from the given size and scale it to fit the screen.
     SizedFullscreen,
-    /// Creates a fullscreen window that uses the maximum supported size
+    /// Creates a fullscreen window that uses the maximum supported size.
     Fullscreen,
 }
 
 /// Define how a window will be created and how it will behave.
 #[derive(Default, Resource, Bundle, Debug, Clone)]
 pub struct WindowBundle {
+    /// Marker component denoting the entity as a window.
     pub window: Window,
+    /// The cursor of this window.
     pub cursor: Cursor,
+    /// The position of this window's cursor.
     pub cursor_position: CursorPosition,
+    /// What presentation mode to give the window.
     pub present_mode: PresentMode,
+    /// Which fullscreen or windowing mode should be used?
     pub mode: WindowMode,
+    /// Where the window should be placed.
     pub position: WindowPosition,
+    /// What resolution the window should have.
     pub resolution: WindowResolution,
+    /// Stores the title of the window.
     pub title: WindowTitle,
+    /// Should the window start minimized, maximized, normal?
     pub state: WindowState,
-    // Maybe default this when using wasm?
+    // TODO: This should be added on wasm builds by default
     //pub canvas: WindowCanvas,
+    /// Which size limits to give the window.
     pub resize_constraints: WindowResizeConstraints,
+    /// Should the window be resizable?
     pub resizable: WindowResizable,
+    /// Should the window have decorations enabled?
     pub decorations: WindowDecorations,
+    /// Should the window be transparent?
     pub transparency: WindowTransparency,
+    /// Should the window start focused?
     pub focus: WindowFocus,
 }
 
@@ -149,9 +163,13 @@ pub struct WindowComponentsMut<'a> {
 #[derive(Debug, Clone, Copy, Component, Reflect)]
 #[reflect(Component)]
 pub struct WindowResizeConstraints {
+    /// The minimum width the window can have.
     pub min_width: f32,
+    /// The minimum height the window can have.
     pub min_height: f32,
+    /// The maximum width the window can have.
     pub max_width: f32,
+    /// The maximum height the window can have.
     pub max_height: f32,
 }
 
@@ -167,6 +185,9 @@ impl Default for WindowResizeConstraints {
 }
 
 impl WindowResizeConstraints {
+    /// Checks if the constraints are valid.
+    /// 
+    /// Will output warnings if it isn't.
     #[must_use]
     pub fn check_constraints(&self) -> Self {
         let WindowResizeConstraints {
@@ -200,11 +221,13 @@ impl WindowResizeConstraints {
     }
 }
 
-/// A marker component on an entity that is a window
+/// A marker component on an entity that is a window.
 #[derive(Default, Debug, Component, Copy, Clone, Reflect)]
 #[reflect(Component)]
 pub struct Window;
 
+
+/// Stores data about the window's cursor.
 #[derive(Debug, Component, Copy, Clone, Reflect)]
 #[reflect(Component)]
 pub struct Cursor {
@@ -224,6 +247,7 @@ impl Default for Cursor {
 }
 
 impl Cursor {
+    /// Creates a new [`Cursor`].
     pub fn new(icon: CursorIcon, visible: bool, locked: bool) -> Self {
         Self {
             icon,
@@ -232,34 +256,69 @@ impl Cursor {
         }
     }
 
+    /// Get the current [`CursorIcon`].
     #[inline]
     pub fn icon(&self) -> CursorIcon {
         self.icon
     }
 
+    /// Get whether or not the cursor is visible.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **`Windows`**, **`X11`**, and **`Wayland`**: The cursor is hidden only when inside the window.
+    /// To stop the cursor from leaving the window, use [`set_cursor_lock_mode`](Window::set_cursor_lock_mode).
+    /// - **`macOS`**: The cursor is hidden only when the window is focused.
+    /// - **`iOS`** and **`Android`** do not have cursors
     #[inline]
     pub fn visible(&self) -> bool {
         self.visible
     }
 
+    /// Get whether or not the cursor is locked.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **`macOS`** doesn't support cursor lock, but most windowing plugins can emulate it.
+    /// See [issue #4875](https://github.com/bevyengine/bevy/issues/4875#issuecomment-1153977546) for more information.
+    /// - **`iOS/Android`** don't have cursors.
     #[inline]
     pub fn locked(&self) -> bool {
         self.locked
     }
 
+    /// Set the [`CursorIcon`].
     pub fn set_icon(&mut self, icon: CursorIcon) {
         self.icon = icon;
     }
 
+    /// Set whether or not the cursor is visible.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **`Windows`**, **`X11`**, and **`Wayland`**: The cursor is hidden only when inside the window.
+    /// To stop the cursor from leaving the window, use [`set_cursor_lock_mode`](Window::set_cursor_lock_mode).
+    /// - **`macOS`**: The cursor is hidden only when the window is focused.
+    /// - **`iOS`** and **`Android`** do not have cursors
     pub fn set_visible(&mut self, visible: bool) {
         self.visible = visible;
     }
 
+    /// Set whether or not the cursor is locked.
+    ///
+    /// This doesn't hide the cursor. For that, use [`set_cursor_visibility`](Window::set_cursor_visibility)
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **`macOS`** doesn't support cursor lock, but most windowing plugins can emulate it. 
+    /// See [issue #4875](https://github.com/bevyengine/bevy/issues/4875#issuecomment-1153977546) for more information.
+    /// - **`iOS/Android`** don't have cursors.
     pub fn set_locked(&mut self, locked: bool) {
         self.locked = locked;
     }
 }
 
+/// Stores the cursor position of the window.
 #[derive(Default, Debug, Component, Clone, Reflect)]
 #[reflect(Component)]
 pub struct CursorPosition {
@@ -268,6 +327,7 @@ pub struct CursorPosition {
 }
 
 impl CursorPosition {
+    /// Creates a new [`CursorPosition`].
     pub fn new(physical_cursor_position: Option<DVec2>) -> Self {
         Self {
             physical_cursor_position,
@@ -280,29 +340,35 @@ impl CursorPosition {
         self.physical_cursor_position
     }
 
+    /// Set the cursor's position, in physical pixels.
     pub fn set(&mut self, position: Option<DVec2>) {
         self.physical_cursor_position = position;
     }
 }
 
+/// A component that stores a reference to this window's [`RawWindowHandleWrapper`]
+/// 
+/// Used by the windowing backend.
 #[derive(Component)]
 pub struct WindowHandle {
     raw_window_handle: RawWindowHandleWrapper,
 }
 
 impl WindowHandle {
+    /// Creates a new [`WindowHandle`].
     pub fn new(raw_window_handle: RawWindowHandle) -> Self {
         Self {
             raw_window_handle: RawWindowHandleWrapper::new(raw_window_handle),
         }
     }
 
+    /// Get the [`RawWindowHandleWrapper`] corresponding to this window.
     pub fn raw_window_handle(&self) -> RawWindowHandleWrapper {
         self.raw_window_handle.clone()
     }
 }
 
-/// Defines where window should be placed at on creation.
+/// Defines where the window should be placed at on creation.
 #[derive(Default, Debug, Clone, Copy, Component, Reflect, FromReflect)]
 #[reflect(Component)]
 pub enum WindowPosition {
@@ -320,6 +386,7 @@ pub enum WindowPosition {
 }
 
 impl WindowPosition {
+    /// Creates a new [`WindowPosition`] at a position.
     pub fn new(position: IVec2) -> Self {
         Self::At(position)
     }
@@ -348,7 +415,6 @@ impl WindowPosition {
 /// requested size due to operating system limits on the window size, or the
 /// quantization of the logical size when converting the physical size to the
 /// logical size through the scaling factor.
-// TODO: Make sure this is used correctly
 #[derive(Component, Debug, Clone, Reflect)]
 #[reflect(Component)]
 pub struct WindowResolution {
@@ -374,6 +440,7 @@ impl Default for WindowResolution {
 }
 
 impl WindowResolution {
+    /// Creates a new [`WindowResolution`].
     pub fn new(requested_width: f64, requested_height: f64) -> Self {
         Self {
             requested_width,
@@ -384,6 +451,7 @@ impl WindowResolution {
         }
     }
 
+    /// Creates a new [`WindowResolution`] with scale overrides.
     pub fn new_with_scale_factor_override(
         requested_width: f64,
         requested_height: f64,
@@ -503,6 +571,12 @@ where
     }
 }
 
+/// The title of the window.
+/// 
+/// Displays on the window top bar, on the system task bar and other OS specific places.
+/// 
+/// ## Platform-specific
+/// - Web: Unsupported.
 #[derive(Component, Debug, Clone, PartialEq, Eq, Reflect)]
 #[reflect(Component)]
 pub struct WindowTitle {
@@ -545,6 +619,14 @@ where
     }
 }
 
+
+/// Defines whether or not decorations are enabled.
+///
+/// (Decorations are the minimize, maximize, and close buttons on desktop apps)
+///
+//  ## Platform-specific
+//
+//  **`iOS`**, **`Android`**, and the **`Web`** do not have decorations.
 #[derive(Default, Component, Debug, Copy, Clone, PartialEq, Eq, Reflect)]
 #[reflect(Component)]
 pub enum WindowDecorations {
@@ -557,25 +639,32 @@ pub enum WindowDecorations {
 }
 
 impl WindowDecorations {
+    /// Returns true if window is decorated.
     pub fn decorated(&self) -> bool {
         *self == Self::Decorated
     }
 }
 
+/// Stores if this window is currently being focused.
 #[derive(Default, Component, Debug, Copy, Clone, PartialEq, Eq, Reflect)]
 #[reflect(Component)]
 pub struct WindowFocus(bool);
 
 impl WindowFocus {
+    /// Get whether or not the window has focus.
+    ///
+    /// A window loses focus when the user switches to another window, and regains focus when the user uses the window again
     pub fn focused(&self) -> bool {
         self.0
     }
 
+    /// Set if this window is currently being focused.
     pub fn set(&mut self, focused: bool) {
         self.0 = focused;
     }
 }
 
+/// Defines the rules for window-resizing.
 #[derive(Default, Component, Debug, Copy, Clone, PartialEq, Eq, Reflect)]
 #[reflect(Component)]
 pub enum WindowResizable {
@@ -591,11 +680,20 @@ pub enum WindowResizable {
 }
 
 impl WindowResizable {
+    /// Returns `true` if window can be resized.
     pub fn resizable(&self) -> bool {
         *self == Self::Resizable
     }
 }
 
+/// Defines whether the background of the window should be transparent.
+///
+/// ## Platform-specific
+/// - iOS / Android / Web: Unsupported.
+/// - macOS X: Not working as expected.
+/// - Windows 11: Not working as expected
+/// macOS X transparent works with winit out of the box, so this issue might be related to: <https://github.com/gfx-rs/wgpu/issues/687>
+/// Windows 11 is related to <https://github.com/rust-windowing/winit/issues/2082>
 #[derive(Default, Component, Debug, Copy, Clone, PartialEq, Eq, Reflect)]
 #[reflect(Component)]
 pub enum WindowTransparency {
@@ -608,11 +706,13 @@ pub enum WindowTransparency {
 }
 
 impl WindowTransparency {
+    /// Returns `true` if this window is transparent.
     pub fn transparent(&self) -> bool {
         *self == Self::Transparent
     }
 }
 
+/// The different states a window can be in.
 #[derive(Default, Component, Debug, Copy, Clone, PartialEq, Eq, Reflect)]
 #[reflect(Component)]
 pub enum WindowState {
@@ -631,19 +731,23 @@ pub enum WindowState {
 }
 
 impl WindowState {
+    /// Returns true if [`WindowState`] is Normal.
     pub fn normal(&self) -> bool {
         self == &Self::Normal
     }
 
+    /// Returns true if [`WindowState`] is Maximized.
     pub fn maximized(&self) -> bool {
         self == &Self::Maximized
     }
 
+    /// Returns true if [`WindowState`] is Minimized.
     pub fn minimized(&self) -> bool {
         self == &Self::Minimized
     }
 }
 
+/// Defines how this window should behave in relation to web-canvas elements.
 #[derive(Default, Component, Debug, Clone, PartialEq, Eq, Reflect)]
 #[reflect(Component)]
 pub struct WindowCanvas {
@@ -652,6 +756,7 @@ pub struct WindowCanvas {
 }
 
 impl WindowCanvas {
+    /// Creates a new [`WindowCanvas`].
     pub fn new(canvas: Option<String>, fit_canvas_to_parent: bool) -> Self {
         Self {
             canvas,
@@ -659,7 +764,9 @@ impl WindowCanvas {
         }
     }
 
-    /// The "html canvas" element selector. If set, this selector will be used to find a matching html canvas element,
+    /// The "html canvas" element selector.
+    ///
+    /// If set, this selector will be used to find a matching html canvas element,
     /// rather than creating a new one.   
     /// Uses the [CSS selector format](https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelector).
     ///

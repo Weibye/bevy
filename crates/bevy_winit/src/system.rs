@@ -65,11 +65,11 @@ pub fn window_destroyed(
     mut winit_windows: NonSendMut<WinitWindows>,
 ) {
     for event in closed.iter() {
-        winit_windows.remove_window(event.entity);
+        winit_windows.remove_window(event.window);
 
-        commands.entity(event.entity).despawn();
+        commands.entity(event.window).despawn();
         if let Some(ref primary) = primary {
-            if primary.window == event.entity {
+            if primary.window == event.window {
                 commands.remove_resource::<PrimaryWindow>();
             }
         }

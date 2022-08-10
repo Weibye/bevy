@@ -29,11 +29,13 @@ use bevy_ecs::{entity::Entity, schedule::SystemLabel, system::Resource};
 /// runs, to configure how it behaves.
 #[derive(Resource, Clone)]
 pub struct WindowSettings {
+    
     /// Whether to create a window when added.
     ///
     /// Note that if there are no windows, by default the App will exit,
     /// due to [`exit_on_all_closed`].
     pub add_primary_window: bool,
+    
     /// Whether to exit the app when there are no open windows.
     ///
     /// If disabling this, ensure that you send the [`bevy_app::AppExit`]
@@ -42,8 +44,8 @@ pub struct WindowSettings {
     /// surprise your users. It is recommended to leave this setting as `true`.
     ///
     /// If true, this plugin will add [`exit_on_all_closed`] to [`CoreStage::Update`].
-    // TODO: Update documentation here
     pub exit_condition: ExitCondition,
+    
     /// Whether to close windows when they are requested to be closed (i.e.
     /// when the close button is pressed).
     ///
@@ -107,18 +109,9 @@ impl Plugin for WindowPlugin {
             .unwrap_or_default();
 
         if settings.add_primary_window {
-            // TODO: Creating primary window should ideally be done through commands instead of the old way
-            // however, commands aren't executed until the end of the "build-stage"
-            // which means the primary-window does not exist until just before startup-systems starts running (?)
-            // which means bevy_render does not have a window to use as attach to during plugin build.
-
-            // Wishlist item; for this to work:
-            // app.add_startup_system(create_primary_window);
-            // or this:
-            // app.add_build_system(create_primary_window)
-
-            // TODO: The unwrap_or_default is necessary for the user to setup ahead of time what the window should be
-            // if not we'll regress on this
+            // If the user has added a window-bundle resource, we should spawn that as as the
+            // primary window. If not, we need to spawn a default WindowBundle,
+            // hence the `unwrap_or_default()` here.
             let window_bundle = app
                 .world
                 .remove_resource::<WindowBundle>()
@@ -150,6 +143,7 @@ impl Plugin for WindowPlugin {
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemLabel)]
 pub struct ModifiesWindows;
 
+/// Defines the specific conditions the application should exit on
 #[derive(Clone)]
 pub enum ExitCondition {
     /// Close application when the primary window is closed
@@ -165,5 +159,6 @@ pub enum ExitCondition {
 /// This resource is allowed to not exist and should be handled gracefully if it doesn't.
 #[derive(Debug, Resource, Clone, Reflect)]
 pub struct PrimaryWindow {
+    /// Window which is currently the primary window.
     pub window: Entity,
 }
