@@ -10,6 +10,9 @@ fn main() {
     App::new()
         // Primary window gets spawned as a result of `DefaultPlugins`
         .add_plugins(DefaultPlugins)
+        // A window bundle inserted as a resource acts as the descriptor
+        // for a primary window.
+        .insert_resource(WindowBundle::default())
         .add_startup_system(setup_scene)
         .add_startup_system(setup_extra_windows)
         .add_system(bevy::window::close_on_esc)
