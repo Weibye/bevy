@@ -6,7 +6,9 @@ use bevy_math::{IVec2, Vec2};
 /// A window event that is sent whenever a window's logical size has changed.
 #[derive(Debug, Clone)]
 pub struct WindowResized {
+    /// Window that has changed.
     pub window: Entity,
+    /// The new logical width of the window.
     pub width: f64,
     /// The new logical height of the window.
     pub height: f64,
@@ -24,6 +26,7 @@ pub struct RequestRedraw;
 /// event will be sent in the handler for that event.
 #[derive(Debug, Clone)]
 pub struct WindowCreated {
+    /// Window that has been created.
     pub window: Entity,
 }
 
@@ -31,7 +34,7 @@ pub struct WindowCreated {
 /// be closed. This will be sent when the close button of the window is pressed.
 ///
 /// If the default [`WindowPlugin`] is used, these events are handled
-/// by [closing] the corresponding [`Window`].  
+/// by closing the corresponding [`Window`].  
 /// To disable this behaviour, set `close_when_requested` on the [`WindowPlugin`]
 /// to `false`.
 ///
@@ -39,6 +42,7 @@ pub struct WindowCreated {
 /// [`Window`]: crate::Window
 #[derive(Debug, Clone)]
 pub struct WindowCloseRequested {
+    /// Window to close.
     pub window: Entity,
 }
 
@@ -46,9 +50,11 @@ pub struct WindowCloseRequested {
 /// handler for [`WindowCloseRequested`] or similar.
 #[derive(Debug, Clone)]
 pub struct WindowClosed {
+    /// Window that has been closed.
+    /// TODO: Does this entity actually exist anymore?
     pub window: Entity,
 }
-/// An event reporting that the mouse cursor has moved on a window.
+/// An event reporting that the mouse cursor has moved inside a window.
 ///
 /// The event is sent only if the cursor is over one of the application's windows.
 /// It is the translated version of [`WindowEvent::CursorMoved`] from the `winit` crate.
@@ -84,6 +90,7 @@ pub struct CursorLeft {
 pub struct ReceivedCharacter {
     /// Window that received the character.
     pub window: Entity,
+    /// Received character.
     pub char: char,
 }
 
@@ -108,13 +115,16 @@ pub struct WindowScaleFactorChanged {
 /// An event that indicates a window's OS-reported scale factor has changed.
 #[derive(Debug, Clone)]
 pub struct WindowBackendScaleFactorChanged {
+    /// Window that had it's scale factor changed by the backend.
     pub window: Entity,
+    /// The new scale factor.
     pub scale_factor: f64,
 }
 
 /// Events related to files being dragged and dropped on a window.
 #[derive(Debug, Clone)]
 pub enum FileDragAndDrop {
+    /// File is being dropped into a window. 
     DroppedFile {
         /// Window the file was dropped into.
         window: Entity,
@@ -122,6 +132,7 @@ pub enum FileDragAndDrop {
         path_buf: PathBuf,
     },
 
+    /// File is currently being hovered over a window.
     HoveredFile {
         /// Window a file is possibly going to be dropped into.
         window: Entity,
@@ -129,6 +140,7 @@ pub enum FileDragAndDrop {
         path_buf: PathBuf,
     },
 
+    /// File hovering was cancelled.
     HoveredFileCancelled {
         /// Window that had a cancelled file drop.
         window: Entity,

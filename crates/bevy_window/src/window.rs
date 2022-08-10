@@ -63,33 +63,38 @@ pub enum PresentMode {
     Fifo = 4, // NOTE: The explicit ordinal values mirror wgpu.
 }
 
-/// Defines the way a window is displayed
+/// Defines the way a window is displayed.
 #[derive(Default, Debug, Component, Clone, Copy, PartialEq, Reflect)]
 #[reflect(Component)]
 pub enum WindowMode {
-    /// Creates a window that uses the given size
+    /// Creates a window that uses the given size.
     #[default]
     Windowed,
-    /// Creates a borderless window that uses the full size of the screen
+    /// Creates a borderless window that uses the full size of the screen.
     BorderlessFullscreen,
     /// Creates a fullscreen window that will render at desktop resolution. The app will use the closest supported size
     /// from the given size and scale it to fit the screen.
     SizedFullscreen,
-    /// Creates a fullscreen window that uses the maximum supported size
+    /// Creates a fullscreen window that uses the maximum supported size.
     Fullscreen,
 }
 
 /// Define how a window will be created and how it will behave.
 #[derive(Default, Resource, Bundle, Debug, Clone)]
 pub struct WindowBundle {
+    /// Marker component denoting the entity as a window.
     pub window: Window,
+    /// The cursor of this window.
     pub cursor: Cursor,
+    /// The position of this window's cursor.
     pub cursor_position: CursorPosition,
     pub present_mode: PresentMode,
     pub mode: WindowMode,
     pub position: WindowPosition,
     pub resolution: WindowResolution,
+    /// Stores the title of the window.
     pub title: WindowTitle,
+    
     pub state: WindowState,
     // Maybe default this when using wasm?
     //pub canvas: WindowCanvas,
@@ -613,6 +618,7 @@ impl WindowTransparency {
     }
 }
 
+/// The different states a window can be in.
 #[derive(Default, Component, Debug, Copy, Clone, PartialEq, Eq, Reflect)]
 #[reflect(Component)]
 pub enum WindowState {
@@ -659,7 +665,9 @@ impl WindowCanvas {
         }
     }
 
-    /// The "html canvas" element selector. If set, this selector will be used to find a matching html canvas element,
+    /// The "html canvas" element selector.
+    ///
+    /// If set, this selector will be used to find a matching html canvas element,
     /// rather than creating a new one.   
     /// Uses the [CSS selector format](https://developer.mozilla.org/en-US/docs/Web/API/Document/querySelector).
     ///

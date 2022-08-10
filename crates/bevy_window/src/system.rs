@@ -22,7 +22,8 @@ pub fn exit_on_all_closed(mut app_exit_events: EventWriter<AppExit>, windows: Qu
 /// Exit the application when the primary window has been closed
 ///
 /// This system is added by the [`WindowPlugin`]
-// TODO: More docs
+/// 
+/// [`WindowPlugin`]: crate::WindowPlugin
 pub fn exit_on_primary_closed(
     mut app_exit_events: EventWriter<AppExit>,
     primary_window: Option<Res<PrimaryWindow>>,
