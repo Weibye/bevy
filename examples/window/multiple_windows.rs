@@ -3,7 +3,7 @@
 use bevy::{
     prelude::*,
     render::camera::RenderTarget,
-    window::{PresentMode, PrimaryWindow, Window, WindowResolution, WindowState, WindowTitle},
+    window::{PrimaryWindow, WindowState, WindowTitle},
 };
 
 fn main() {

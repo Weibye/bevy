@@ -11,7 +11,7 @@ use bevy_reflect::{Reflect, ReflectDeserialize, ReflectSerialize};
 use bevy_render::{camera::RenderTarget, prelude::Camera, view::ComputedVisibility};
 use bevy_transform::components::GlobalTransform;
 use bevy_utils::FloatOrd;
-use bevy_window::{CursorPosition, PrimaryWindow, Window, WindowFocus};
+use bevy_window::{CursorPosition, Window, WindowFocus};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 

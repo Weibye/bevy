@@ -2,9 +2,8 @@
 //! the mouse pointer in various ways.
 
 use bevy::{
-    ecs::system::Command,
     prelude::*,
-    window::{Cursor, PresentMode, PrimaryWindow, WindowResolution, WindowTitle},
+    window::{Cursor, PresentMode, WindowResolution, WindowTitle},
 };
 
 fn main() {

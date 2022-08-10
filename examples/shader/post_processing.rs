@@ -16,7 +16,7 @@ use bevy::{
         texture::BevyDefault,
         view::RenderLayers,
     },
-    sprite::{Material2d, Material2dPipeline, Material2dPlugin, MaterialMesh2dBundle},
+    sprite::{Material2d, Material2dPlugin, MaterialMesh2dBundle},
     window::{PrimaryWindow, WindowResolution},
 };
 
@@ -44,6 +44,8 @@ fn setup(
     mut images: ResMut<Assets<Image>>,
     asset_server: Res<AssetServer>,
 ) {
+    asset_server.watch_for_changes().unwrap();
+
     let primary_resolution = windows
         .get(primary_window.window)
         .expect("PrimaryWindow should have a valid Resolution component");
