@@ -6,6 +6,7 @@ mod system;
 mod window;
 
 pub use crate::raw_window_handle::*;
+use bevy_reflect::Reflect;
 pub use cursor::*;
 pub use event::*;
 pub use system::*;
@@ -167,6 +168,7 @@ pub enum ExitCondition {
 /// Resource containing the Entity that is currently considered the primary window.
 ///
 /// This resource is allowed to not exist and should be handled gracefully if it doesn't.
+#[derive(Debug, Resource, Clone, Reflect)]
 pub struct PrimaryWindow {
     pub window: Entity,
 }

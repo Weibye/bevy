@@ -80,7 +80,7 @@ pub enum WindowMode {
 }
 
 /// Define how a window will be created and how it will behave.
-#[derive(Default, Bundle, Debug, Clone)]
+#[derive(Default, Resource, Bundle, Debug, Clone)]
 pub struct WindowBundle {
     pub window: Window,
     pub cursor: Cursor,
@@ -303,7 +303,7 @@ impl WindowHandle {
 }
 
 /// Defines where window should be placed at on creation.
-#[derive(Default, Debug, Clone, Copy, Component, Reflect)]
+#[derive(Default, Debug, Clone, Copy, Component, Reflect, FromReflect)]
 #[reflect(Component)]
 pub enum WindowPosition {
     /// Position will be set by the window manager
@@ -683,7 +683,7 @@ impl WindowCanvas {
 }
 
 /// Defines which monitor to use.
-#[derive(Debug, Clone, Copy, Reflect)]
+#[derive(Debug, Clone, Copy, Reflect, FromReflect)]
 pub enum MonitorSelection {
     /// Uses current monitor of the window.
     Current,

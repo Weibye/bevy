@@ -1,18 +1,12 @@
 [package]
-<<<<<<<=======
->>>>>>>c355b7864... Just error on no primary window rather than panic
-HEAD 
 description = "Provides text functionality for Bevy Engine"
-edition = "2021"
 edition = "2021"
 homepage = "https://bevyengine.org"
 keywords = ["bevy"]
 license = "MIT OR Apache-2.0"
 name = "bevy_text"
-name = "bevy_text"
 repository = "https://github.com/bevyengine/bevy"
 version = "0.9.0-dev"
-version = "0.8.0"
 
 [features]
 subpixel_glyph_atlas = []
