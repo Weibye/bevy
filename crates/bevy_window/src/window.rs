@@ -429,6 +429,11 @@ impl WindowResolution {
         self.physical_height
     }
 
+    /// The window has zero resolution (mostly using this to detect minimization of the window).
+    pub fn zero(&self) -> bool {
+        self.physical_height() == 0 && self.physical_width() == 0
+    }
+
     /// The ratio of physical pixels to logical pixels
     ///
     /// `physical_pixels = logical_pixels * scale_factor`

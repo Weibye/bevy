@@ -67,7 +67,7 @@ fn setup_second_window(mut commands: Commands) {
         .spawn()
         .insert_bundle(WindowBundle {
             title: WindowTitle::new("Third window"),
-            state: WindowState::Minimized,
+            state: WindowState::Maximized,
             ..Default::default()
         })
         .id();

@@ -110,10 +110,6 @@ impl WinitWindows {
 
         let winit_window = winit_window_builder.build(event_loop).unwrap();
 
-        if components.state.minimized() {
-            //winit_window.set_minimized(true);
-        }
-
         if components.cursor.locked() {
             match winit_window.set_cursor_grab(true) {
                 Ok(_) | Err(winit::error::ExternalError::NotSupported(_)) => {}
@@ -122,6 +118,10 @@ impl WinitWindows {
         }
 
         winit_window.set_cursor_visible(components.cursor.visible());
+
+        if components.state.minimized() {
+            winit_window.set_minimized(true);
+        }
 
         self.window_id_to_winit.insert(entity, winit_window.id());
         self.winit_to_window_id.insert(winit_window.id(), entity);
