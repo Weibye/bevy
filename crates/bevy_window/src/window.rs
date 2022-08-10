@@ -324,8 +324,14 @@ impl WindowPosition {
         Self::At(position)
     }
 
+    /// Set the position to a specific point.
     pub fn set(&mut self, position: IVec2) {
         *self = WindowPosition::At(position);
+    }
+
+    /// Set the window to a specific monitor.
+    pub fn center(&mut self, monitor: MonitorSelection) {
+        *self = WindowPosition::Centered(monitor);
     }
 }
 
