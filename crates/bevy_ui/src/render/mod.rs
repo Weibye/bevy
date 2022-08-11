@@ -293,7 +293,7 @@ pub fn extract_text_uinodes(
         bevy_log::error!("No primary window found");
         return;
     };
-
+    // TODO: Support window-independent UI scale: https://github.com/bevyengine/bevy/issues/5621
     let resolution = windows
         .get(primary_window.window)
         .expect("Primary windows should have a valid WindowResolution component");
