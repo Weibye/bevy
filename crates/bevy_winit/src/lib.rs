@@ -199,9 +199,6 @@ impl Default for WinitPersistentState {
     }
 }
 
-// #[derive(Default)]
-// struct WinitCreateWindowReader(ManualEventReader<CreateWindow>);
-
 // TODO: Refactor this to work with new pattern
 pub fn winit_runner(mut app: App) {
     // TODO: Understand what removing and adding this does
