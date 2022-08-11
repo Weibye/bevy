@@ -344,7 +344,6 @@ pub fn winit_runner(mut app: App) {
                                 height: window.resolution.height(),
                             });
                         } else {
-                            // TODO: Helpful panic comment
                             panic!("Window does not have a valid WindowResolution component");
                         }
                     }

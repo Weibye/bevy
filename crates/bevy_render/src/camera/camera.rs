@@ -303,8 +303,7 @@ impl RenderTarget {
                         scale_factor: resolution.scale_factor(),
                     }
                 } else {
-                    // TODO: Helpful panic comment
-                    panic!("Render target does not point to a valid window (no resolution found)");
+                    panic!("Window does not have a valid WindowResolution component");
                 }
             }
             RenderTarget::Image(image_handle) => {
@@ -329,8 +328,7 @@ impl RenderTarget {
                         scale_factor: resolution.scale_factor(),
                     }
                 } else {
-                    // TODO: Helpful panic comment
-                    panic!("Render target does not point to a valid window (no resolution found)");
+                    panic!("Window does not have a valid WindowResolution component");
                 }
             }
         })

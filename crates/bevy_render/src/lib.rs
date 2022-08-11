@@ -160,7 +160,6 @@ impl Plugin for RenderPlugin {
                         Some(instance.create_surface(&handle))
                     }
                 } else {
-                    // TODO: Helpful panic comment
                     panic!("No WindowHandle component on primary window");
                 }
             };
