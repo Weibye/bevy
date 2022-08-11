@@ -121,7 +121,7 @@ impl WinitWindows {
 
         // I don't think we can do this immediately with some platforms.
         if components.state.minimized() {
-            //winit_window.set_minimized(true);
+            winit_window.set_minimized(true);
         }
 
         self.window_id_to_winit.insert(entity, winit_window.id());

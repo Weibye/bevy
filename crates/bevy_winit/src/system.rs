@@ -240,7 +240,6 @@ pub fn update_window_state(
                     winit_window.set_maximized(false);
                 }
                 WindowState::Maximized => {
-                    // should we call `set_minimized(false)` here?
                     winit_window.set_maximized(true);
                 }
                 WindowState::Minimized => {

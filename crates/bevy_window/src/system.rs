@@ -3,7 +3,6 @@ use crate::{PrimaryWindow, Window, WindowCloseRequested, WindowClosed, WindowFoc
 use bevy_app::AppExit;
 use bevy_ecs::prelude::*;
 use bevy_input::{keyboard::KeyCode, Input};
-use bevy_utils::tracing::warn;
 
 /// Exit the application when there are no open windows.
 ///
@@ -27,24 +26,10 @@ pub fn exit_on_all_closed(mut app_exit_events: EventWriter<AppExit>, windows: Qu
 pub fn exit_on_primary_closed(
     mut app_exit_events: EventWriter<AppExit>,
     primary_window: Option<Res<PrimaryWindow>>,
-    mut window_close: EventReader<WindowClosed>,
 ) {
-    match primary_window.as_ref() {
-        Some(primary_window) => {
-            for window in window_close.iter() {
-                warn!(
-                    "primary_window: {:?}, closed: {:?}",
-                    primary_window.window, window.window
-                );
-                if primary_window.window == window.window {
-                    // Primary window has been closed
-                    app_exit_events.send(AppExit);
-                }
-            }
-        }
-        None => {
-            app_exit_events.send(AppExit);
-        }
+    if primary_window.is_none() {
+        // Primary window has been closed
+        app_exit_events.send(AppExit);
     }
 }
 

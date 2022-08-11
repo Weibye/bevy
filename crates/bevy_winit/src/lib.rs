@@ -67,7 +67,7 @@ impl Plugin for WinitPlugin {
                     .with_system(update_cursor_position)
                     .with_system(update_resize_constraints),
             )
-            .add_system_to_stage(CoreStage::PostUpdate, despawn_window.after(ModifiesWindows));
+            .add_system_to_stage(CoreStage::Last, despawn_window);
 
         #[cfg(target_arch = "wasm32")]
         app.add_plugin(web_resize::CanvasParentResizePlugin);
@@ -591,8 +591,12 @@ pub fn winit_runner(mut app: App) {
                 winit_state.active = true;
             }
             event::Event::MainEventsCleared => {
-                let (commands, new_windows, winit_windows, winit_config, window_focused_query) =
+                let (mut commands, new_windows, winit_windows, winit_config, window_focused_query) =
                     create_window_system_state.get_mut(&mut app.world);
+
+                for (window, components) in &new_windows {
+                    commands.entity(window).insert(*components.state);
+                }
 
                 // Responsible for creating new windows
                 create_window(commands, event_loop, new_windows, winit_windows);
