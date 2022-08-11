@@ -9,9 +9,9 @@ use core::panic;
 
 use bevy_ecs::system::{SystemParam, SystemState};
 use system::{
-    create_window_system, update_cursor, update_cursor_position, update_resize_constraints,
-    update_resolution, update_title, update_window_mode, update_window_position,
-    update_window_state, window_destroyed,
+    create_window, despawn_window, update_cursor, update_cursor_position,
+    update_resize_constraints, update_resolution, update_title, update_window_mode,
+    update_window_position, update_window_state,
 };
 
 pub use winit_config::*;
@@ -67,7 +67,7 @@ impl Plugin for WinitPlugin {
                     .with_system(update_cursor_position)
                     .with_system(update_resize_constraints),
             )
-            .add_system_to_stage(CoreStage::Last, window_destroyed);
+            .add_system_to_stage(CoreStage::PostUpdate, despawn_window.after(ModifiesWindows));
 
         #[cfg(target_arch = "wasm32")]
         app.add_plugin(web_resize::CanvasParentResizePlugin);
@@ -86,7 +86,7 @@ impl Plugin for WinitPlugin {
             // Here we need to create a winit-window and give it a WindowHandle which the renderer can use.
             // It needs to be spawned before the start of the startup-stage, so we cannot use a regular system.
             // Instead we need to create the window and spawn it using direct world access
-            create_window_system(commands, &**event_loop, new_windows, winit_windows);
+            create_window(commands, &**event_loop, new_windows, winit_windows);
         }
 
         system_state.apply(&mut app.world);
@@ -199,18 +199,13 @@ impl Default for WinitPersistentState {
     }
 }
 
-// TODO: Refactor this to work with new pattern
 pub fn winit_runner(mut app: App) {
-    // TODO: Understand what removing and adding this does
+    // We remove this so that we have ownership over it.
     let mut event_loop = app
         .world
         .remove_non_send_resource::<EventLoop<()>>()
         .unwrap();
-    // let mut create_window_event_reader = app
-    //     .world
-    //     .remove_resource::<WinitCreateWindowReader>()
-    //     .unwrap()
-    //     .0;
+
     let mut app_exit_event_reader = ManualEventReader::<AppExit>::default();
     let mut redraw_event_reader = ManualEventReader::<RequestRedraw>::default();
     let mut winit_state = WinitPersistentState::default();
@@ -600,7 +595,7 @@ pub fn winit_runner(mut app: App) {
                     create_window_system_state.get_mut(&mut app.world);
 
                 // Responsible for creating new windows
-                create_window_system(commands, event_loop, new_windows, winit_windows);
+                create_window(commands, event_loop, new_windows, winit_windows);
 
                 let update = if winit_state.active {
                     // True if _any_ windows are currently being focused

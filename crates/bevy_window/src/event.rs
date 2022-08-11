@@ -46,12 +46,14 @@ pub struct WindowCloseRequested {
     pub window: Entity,
 }
 
-/// An event that is sent whenever a window is closed. This will be sent by the
-/// handler for [`WindowCloseRequested`] or similar.
+/// An event that is sent whenever a window is closed. This will be sent by the window
+/// backend
 #[derive(Debug, Clone)]
 pub struct WindowClosed {
     /// Window that has been closed.
-    /// TODO: Does this entity actually exist anymore?
+    ///
+    /// Note that this entity probably no longer exists
+    /// by the time this event is received.
     pub window: Entity,
 }
 /// An event reporting that the mouse cursor has moved inside a window.
@@ -124,7 +126,7 @@ pub struct WindowBackendScaleFactorChanged {
 /// Events related to files being dragged and dropped on a window.
 #[derive(Debug, Clone)]
 pub enum FileDragAndDrop {
-    /// File is being dropped into a window. 
+    /// File is being dropped into a window.
     DroppedFile {
         /// Window the file was dropped into.
         window: Entity,

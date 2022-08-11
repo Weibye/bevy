@@ -8,7 +8,7 @@ use bevy::{
 
 fn main() {
     App::new()
-        // Primary window gets spawned as a result of `DefaultPlugins`
+        // Primary window gets spawned by `DefaultPlugins`
         .add_plugins(DefaultPlugins)
         // A window bundle inserted as a resource acts as the descriptor
         // for a primary window.
@@ -50,6 +50,7 @@ fn setup_extra_windows(mut commands: Commands) {
     let second_window_id = commands
         .spawn_bundle(WindowBundle {
             title: WindowTitle::new("Second window"),
+            // A window can start minimized.
             state: WindowState::Minimized,
             ..Default::default()
         })
@@ -68,6 +69,7 @@ fn setup_extra_windows(mut commands: Commands) {
     let third_window_id = commands
         .spawn_bundle(WindowBundle {
             title: WindowTitle::new("Third window"),
+            // ... or start maximized.
             state: WindowState::Maximized,
             ..Default::default()
         })

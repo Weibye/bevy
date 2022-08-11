@@ -1,8 +1,8 @@
 use bevy_ecs::{
-    entity::Entity,
-    event::EventReader,
+    entity::{Entities, Entity},
+    event::EventWriter,
     prelude::{Added, Changed, With},
-    system::{Commands, NonSendMut, Query, Res},
+    system::{Commands, NonSendMut, Query, RemovedComponents, Res},
 };
 use bevy_utils::tracing::{error, info};
 use bevy_window::{
@@ -22,7 +22,7 @@ use crate::{converters, get_best_videomode, get_fitting_videomode, WinitWindows}
 /// to an entity.
 ///
 /// This will default any necessary components if they are not already added.
-pub fn create_window_system(
+pub fn create_window(
     mut commands: Commands,
     event_loop: &EventLoopWindowTarget<()>,
     created_windows: Query<(Entity, WindowComponents), Added<Window>>,
@@ -58,21 +58,28 @@ pub fn create_window_system(
     }
 }
 
-pub fn window_destroyed(
+pub fn despawn_window(
     mut commands: Commands,
+    entities: &Entities,
     primary: Option<Res<PrimaryWindow>>,
-    mut closed: EventReader<WindowClosed>,
+    closed: RemovedComponents<Window>,
+    mut close_events: EventWriter<WindowClosed>,
     mut winit_windows: NonSendMut<WinitWindows>,
 ) {
-    for event in closed.iter() {
-        winit_windows.remove_window(event.window);
+    for window in closed.iter() {
+        winit_windows.remove_window(window);
 
-        commands.entity(event.window).despawn();
+        if entities.contains(window) {
+            commands.entity(window).despawn();
+        }
+
         if let Some(ref primary) = primary {
-            if primary.window == event.window {
+            if primary.window == window {
                 commands.remove_resource::<PrimaryWindow>();
             }
         }
+
+        close_events.send(WindowClosed { window });
     }
 }
 

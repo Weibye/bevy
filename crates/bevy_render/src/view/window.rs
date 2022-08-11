@@ -115,7 +115,7 @@ fn extract_windows(
     }
 
     for closed_window in closed.iter() {
-        extracted_windows.remove(&closed_window.entity);
+        extracted_windows.remove(&closed_window.window);
     }
 }
 

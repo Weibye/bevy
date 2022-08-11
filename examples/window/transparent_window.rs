@@ -15,7 +15,7 @@ fn main() {
         .insert_resource(ClearColor(Color::NONE))
         .insert_resource(WindowBundle {
             // Setting `transparent` allows the `ClearColor`'s alpha value to take effect
-            transparency: WindowTransaprency::Transparent,
+            transparency: WindowTransparency::Transparent,
             // Disabling window decorations to make it feel more like a widget than a window
             decorations: WindowDecorations::Undecorated,
             ..default()
