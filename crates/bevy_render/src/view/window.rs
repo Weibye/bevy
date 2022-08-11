@@ -71,7 +71,7 @@ impl DerefMut for ExtractedWindows {
     }
 }
 
-pub fn extract_windows(
+fn extract_windows(
     mut extracted_windows: ResMut<ExtractedWindows>,
     mut closed: Extract<EventReader<WindowClosed>>,
     primary: Extract<Option<Res<PrimaryWindow>>>,
