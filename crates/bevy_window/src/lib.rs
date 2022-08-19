@@ -29,13 +29,12 @@ use bevy_ecs::{entity::Entity, schedule::SystemLabel, system::Resource};
 /// runs, to configure how it behaves.
 #[derive(Resource, Clone)]
 pub struct WindowSettings {
-    
     /// Whether to create a window when added.
     ///
     /// Note that if there are no windows, by default the App will exit,
     /// due to [`exit_on_all_closed`].
     pub add_primary_window: bool,
-    
+
     /// Whether to exit the app when there are no open windows.
     ///
     /// If disabling this, ensure that you send the [`bevy_app::AppExit`]
@@ -45,7 +44,7 @@ pub struct WindowSettings {
     ///
     /// If true, this plugin will add [`exit_on_all_closed`] to [`CoreStage::Update`].
     pub exit_condition: ExitCondition,
-    
+
     /// Whether to close windows when they are requested to be closed (i.e.
     /// when the close button is pressed).
     ///
