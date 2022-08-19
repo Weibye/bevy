@@ -72,6 +72,13 @@ impl Plugin for WinitPlugin {
         #[cfg(target_arch = "wasm32")]
         app.add_plugin(web_resize::CanvasParentResizePlugin);
 
+        // TODO: Create window reader should be mutable when NOT on android, then immutable ON android
+        #[cfg(not(target_os = "android"))]
+        let mut create_window_reader = WinitCreateWindowReader::default();
+        #[cfg(target_os = "android")]
+        let create_window_reader = WinitCreateWindowReader::default();
+
+        // TODO: We should NOT create the window when on android
         let mut system_state: SystemState<(
             Commands,
             NonSendMut<EventLoop<()>>,
@@ -86,6 +93,10 @@ impl Plugin for WinitPlugin {
             // Here we need to create a winit-window and give it a WindowHandle which the renderer can use.
             // It needs to be spawned before the start of the startup-stage, so we cannot use a regular system.
             // Instead we need to create the window and spawn it using direct world access
+
+            // Note that we create a window here "early" because WASM/WebGL requires the window to exist prior to initializing
+            // the renderer.
+            #[cfg(not(target_os = "android"))]
             create_window(commands, &**event_loop, new_windows, winit_windows);
         }
 

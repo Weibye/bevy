@@ -131,6 +131,8 @@ pub struct WindowComponents<'a> {
     pub decorations: &'a WindowDecorations,
     pub transparency: &'a WindowTransparency,
     pub focus: &'a WindowFocus,
+    #[cfg(target_arch = "wasm32")]
+    pub canvas: &'a WindowCanvas,
 }
 
 #[derive(WorldQuery)]
@@ -151,6 +153,8 @@ pub struct WindowComponentsMut<'a> {
     pub decorations: &'a mut WindowDecorations,
     pub transparency: &'a mut WindowTransparency,
     pub focus: &'a mut WindowFocus,
+    #[cfg(target_arch = "wasm32")]
+    pub canvas: &'a mut WindowCanvas,
 }
 
 /// The size limits on a window.
