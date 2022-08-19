@@ -42,6 +42,9 @@ use winit::{
     event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget},
 };
 
+#[cfg(target_arch = "wasm32")]
+use crate::web_resize::{ CanvasParentResizePlugin, CanvasParentResizeEventChannel };
+
 #[derive(Default)]
 pub struct WinitPlugin;
 

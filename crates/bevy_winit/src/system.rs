@@ -17,6 +17,11 @@ use winit::{
 };
 
 use crate::{converters, get_best_videomode, get_fitting_videomode, WinitWindows};
+#[cfg(target_arch = "wasm32")]
+use crate::web_resize::{ CanvasParentResizeEventChannel, WINIT_CANVAS_SELECTOR };
+#[cfg(target_arch = "wasm32")]
+use bevy_ecs::system::ResMut;
+
 
 /// System responsible for creating new windows whenever a `Window` component is added
 /// to an entity.
@@ -27,9 +32,8 @@ pub fn create_window(
     event_loop: &EventLoopWindowTarget<()>,
     created_windows: Query<(Entity, WindowComponents), Added<Window>>,
     mut winit_windows: NonSendMut<WinitWindows>,
-    #[cfg(target_arch = "wasm32")] mut event_channel: ResMut<
-        web_resize::CanvasParentResizeEventChannel,
-    >,
+    #[cfg(target_arch = "wasm32")]
+    mut event_channel: ResMut<CanvasParentResizeEventChannel>,
 ) {
     for (window_entity, components) in &created_windows {
         if let Some(_) = winit_windows.get_window(window_entity) {
@@ -48,10 +52,10 @@ pub fn create_window(
         #[cfg(target_arch = "wasm32")]
         {
             if &components.canvas.fit_canvas_to_parent {
-                let selector = if let Some(selector) = &create_window_event.descriptor.canvas {
+                let selector = if let Some(selector) = &components.canvas.canvas {
                     selector
                 } else {
-                    web_resize::WINIT_CANVAS_SELECTOR
+                    WINIT_CANVAS_SELECTOR
                 };
                 event_channel.listen_to_selector(window_entity, selector);
             }
