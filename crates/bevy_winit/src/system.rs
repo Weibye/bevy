@@ -1,3 +1,4 @@
+use bevy_ecs::system::ResMut;
 use bevy_ecs::{
     entity::{Entities, Entity},
     event::EventWriter,
@@ -27,6 +28,9 @@ pub fn create_window(
     event_loop: &EventLoopWindowTarget<()>,
     created_windows: Query<(Entity, WindowComponents), Added<Window>>,
     mut winit_windows: NonSendMut<WinitWindows>,
+    #[cfg(target_arch = "wasm32")] mut canvas_event_channel: ResMut<
+        web_resize::CanvasParentResizeEventChannel,
+    >,
 ) {
     for (window_entity, components) in &created_windows {
         if let Some(_) = winit_windows.get_window(window_entity) {
@@ -36,23 +40,32 @@ pub fn create_window(
 
         info!("Creating a new window: {:?}", window_entity);
 
+        // This event is already sent on windows, x11, and xwayland.
+        // TODO: we aren't yet sure about native wayland, so we might be able to exclude it,
+        // but sending a duplicate event isn't problematic, as windows already does this.
+        // #[cfg(not(any(target_os = "windows", target_feature = "x11")))]
+        // TODO: Maybe this is not needed anymore?
+        // window_resized_events.send(WindowResized {
+        //     id: window_entity,
+        //     width: window.width(),
+        //     height: window.height(),
+        // });
+
         let winit_window = winit_windows.create_window(&event_loop, window_entity, &components);
 
         commands
             .entity(window_entity)
             .insert(WindowHandle::new(winit_window.raw_window_handle()));
 
-        // TODO: Fix this
         #[cfg(target_arch = "wasm32")]
         {
-            let channel = world.resource_mut::<web_resize::CanvasParentResizeEventChannel>();
-            if create_window_event.descriptor.fit_canvas_to_parent {
-                let selector = if let Some(selector) = &create_window_event.descriptor.canvas {
+            if &components.canvas.fit_canvas_to_parent {
+                let selector = if let Some(selector) = &components.canvas.canvas {
                     selector
                 } else {
                     web_resize::WINIT_CANVAS_SELECTOR
                 };
-                channel.listen_to_selector(create_window_event.entity, selector);
+                canvas_event_channel.listen_to_selector(window_entity, selector);
             }
         }
     }
