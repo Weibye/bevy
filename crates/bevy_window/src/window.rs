@@ -190,7 +190,7 @@ impl Default for WindowResizeConstraints {
 
 impl WindowResizeConstraints {
     /// Checks if the constraints are valid.
-    /// 
+    ///
     /// Will output warnings if it isn't.
     #[must_use]
     pub fn check_constraints(&self) -> Self {
@@ -229,7 +229,6 @@ impl WindowResizeConstraints {
 #[derive(Default, Debug, Component, Copy, Clone, Reflect)]
 #[reflect(Component)]
 pub struct Window;
-
 
 /// Stores data about the window's cursor.
 #[derive(Debug, Component, Copy, Clone, Reflect)]
@@ -314,7 +313,7 @@ impl Cursor {
     ///
     /// ## Platform-specific
     ///
-    /// - **`macOS`** doesn't support cursor lock, but most windowing plugins can emulate it. 
+    /// - **`macOS`** doesn't support cursor lock, but most windowing plugins can emulate it.
     /// See [issue #4875](https://github.com/bevyengine/bevy/issues/4875#issuecomment-1153977546) for more information.
     /// - **`iOS/Android`** don't have cursors.
     pub fn set_locked(&mut self, locked: bool) {
@@ -351,7 +350,7 @@ impl CursorPosition {
 }
 
 /// A component that stores a reference to this window's [`RawWindowHandleWrapper`]
-/// 
+///
 /// Used by the windowing backend.
 #[derive(Component)]
 pub struct WindowHandle {
@@ -576,9 +575,9 @@ where
 }
 
 /// The title of the window.
-/// 
+///
 /// Displays on the window top bar, on the system task bar and other OS specific places.
-/// 
+///
 /// ## Platform-specific
 /// - Web: Unsupported.
 #[derive(Component, Debug, Clone, PartialEq, Eq, Reflect)]
@@ -622,7 +621,6 @@ where
         WindowTitle::new(title)
     }
 }
-
 
 /// Defines whether or not decorations are enabled.
 ///
