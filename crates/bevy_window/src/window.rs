@@ -100,8 +100,6 @@ pub struct WindowBundle {
     pub title: WindowTitle,
     /// Should the window start minimized, maximized, normal?
     pub state: WindowState,
-    // TODO: This should be added on wasm builds by default
-    //pub canvas: WindowCanvas,
     /// Which size limits to give the window.
     pub resize_constraints: WindowResizeConstraints,
     /// Should the window be resizable?
@@ -112,6 +110,8 @@ pub struct WindowBundle {
     pub transparency: WindowTransparency,
     /// Should the window start focused?
     pub focus: WindowFocus,
+    #[cfg(target_arch = "wasm32")]
+    pub canvas: WindowCanvas,
 }
 
 #[derive(WorldQuery)]
@@ -131,6 +131,8 @@ pub struct WindowComponents<'a> {
     pub decorations: &'a WindowDecorations,
     pub transparency: &'a WindowTransparency,
     pub focus: &'a WindowFocus,
+    #[cfg(target_arch = "wasm32")]
+    pub canvas: &'a WindowCanvas,
 }
 
 #[derive(WorldQuery)]
@@ -151,6 +153,8 @@ pub struct WindowComponentsMut<'a> {
     pub decorations: &'a mut WindowDecorations,
     pub transparency: &'a mut WindowTransparency,
     pub focus: &'a mut WindowFocus,
+    #[cfg(target_arch = "wasm32")]
+    pub canvas: &'a mut WindowCanvas,
 }
 
 /// The size limits on a window.

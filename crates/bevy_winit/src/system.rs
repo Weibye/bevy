@@ -27,6 +27,9 @@ pub fn create_window(
     event_loop: &EventLoopWindowTarget<()>,
     created_windows: Query<(Entity, WindowComponents), Added<Window>>,
     mut winit_windows: NonSendMut<WinitWindows>,
+    #[cfg(target_arch = "wasm32")] mut event_channel: ResMut<
+        web_resize::CanvasParentResizeEventChannel,
+    >,
 ) {
     for (window_entity, components) in &created_windows {
         if let Some(_) = winit_windows.get_window(window_entity) {
@@ -42,17 +45,15 @@ pub fn create_window(
             .entity(window_entity)
             .insert(WindowHandle::new(winit_window.raw_window_handle()));
 
-        // TODO: Fix this
         #[cfg(target_arch = "wasm32")]
         {
-            let channel = world.resource_mut::<web_resize::CanvasParentResizeEventChannel>();
-            if create_window_event.descriptor.fit_canvas_to_parent {
+            if &components.canvas.fit_canvas_to_parent {
                 let selector = if let Some(selector) = &create_window_event.descriptor.canvas {
                     selector
                 } else {
                     web_resize::WINIT_CANVAS_SELECTOR
                 };
-                channel.listen_to_selector(create_window_event.entity, selector);
+                event_channel.listen_to_selector(window_entity, selector);
             }
         }
     }

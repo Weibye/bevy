@@ -70,8 +70,9 @@ impl Plugin for WinitPlugin {
             .add_system_to_stage(CoreStage::Last, despawn_window);
 
         #[cfg(target_arch = "wasm32")]
-        app.add_plugin(web_resize::CanvasParentResizePlugin);
+        app.add_plugin(CanvasParentResizePlugin);
 
+        #[cfg(not(target_arch = "wasm32"))]
         let mut system_state: SystemState<(
             Commands,
             NonSendMut<EventLoop<()>>,
@@ -79,14 +80,38 @@ impl Plugin for WinitPlugin {
             NonSendMut<WinitWindows>,
         )> = SystemState::from_world(&mut app.world);
 
+        #[cfg(target_arch = "wasm32")]
+        let mut system_state: SystemState<(
+            Commands,
+            NonSendMut<EventLoop<()>>,
+            Query<(Entity, WindowComponents), Added<Window>>,
+            NonSendMut<WinitWindows>,
+            ResMut<CanvasParentResizeEventChannel>,
+        )> = SystemState::from_world(&mut app.world);
+
         {
+            #[cfg(not(target_arch = "wasm32"))]
             let (commands, event_loop, new_windows, winit_windows) =
+                system_state.get_mut(&mut app.world);
+
+            #[cfg(target_arch = "wasm32")]
+            let (commands, event_loop, new_windows, winit_windows, event_channel) =
                 system_state.get_mut(&mut app.world);
 
             // Here we need to create a winit-window and give it a WindowHandle which the renderer can use.
             // It needs to be spawned before the start of the startup-stage, so we cannot use a regular system.
             // Instead we need to create the window and spawn it using direct world access
+            #[cfg(not(target_arch = "wasm32"))]
             create_window(commands, &**event_loop, new_windows, winit_windows);
+
+            #[cfg(target_arch = "wasm32")]
+            create_window(
+                commands,
+                &**event_loop,
+                new_windows,
+                winit_windows,
+                event_channel,
+            );
         }
 
         system_state.apply(&mut app.world);
