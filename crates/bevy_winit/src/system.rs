@@ -16,24 +16,22 @@ use winit::{
     event_loop::EventLoopWindowTarget,
 };
 
+#[cfg(target_arch = "wasm32")]
+use crate::web_resize::{CanvasParentResizeEventChannel, WINIT_CANVAS_SELECTOR};
 use crate::{converters, get_best_videomode, get_fitting_videomode, WinitWindows};
 #[cfg(target_arch = "wasm32")]
-use crate::web_resize::{ CanvasParentResizeEventChannel, WINIT_CANVAS_SELECTOR };
-#[cfg(target_arch = "wasm32")]
 use bevy_ecs::system::ResMut;
-
 
 /// System responsible for creating new windows whenever a `Window` component is added
 /// to an entity.
 ///
 /// This will default any necessary components if they are not already added.
-pub fn create_window(
+pub(crate) fn create_window(
     mut commands: Commands,
     event_loop: &EventLoopWindowTarget<()>,
     created_windows: Query<(Entity, WindowComponents), Added<Window>>,
     mut winit_windows: NonSendMut<WinitWindows>,
-    #[cfg(target_arch = "wasm32")]
-    mut event_channel: ResMut<CanvasParentResizeEventChannel>,
+    #[cfg(target_arch = "wasm32")] mut event_channel: ResMut<CanvasParentResizeEventChannel>,
 ) {
     for (window_entity, components) in &created_windows {
         if let Some(_) = winit_windows.get_window(window_entity) {
@@ -51,8 +49,8 @@ pub fn create_window(
 
         #[cfg(target_arch = "wasm32")]
         {
-            if &components.canvas.fit_canvas_to_parent {
-                let selector = if let Some(selector) = &components.canvas.canvas {
+            if components.canvas.fit_canvas_to_parent() {
+                let selector = if let Some(selector) = &components.canvas.canvas() {
                     selector
                 } else {
                     WINIT_CANVAS_SELECTOR
@@ -63,7 +61,7 @@ pub fn create_window(
     }
 }
 
-pub fn despawn_window(
+pub(crate) fn despawn_window(
     mut commands: Commands,
     entities: &Entities,
     primary: Option<Res<PrimaryWindow>>,
@@ -88,7 +86,7 @@ pub fn despawn_window(
     }
 }
 
-pub fn update_title(
+pub(crate) fn update_title(
     changed_windows: Query<(Entity, &WindowTitle), (With<Window>, Changed<WindowTitle>)>,
     winit_windows: NonSendMut<WinitWindows>,
 ) {
@@ -99,7 +97,7 @@ pub fn update_title(
     }
 }
 
-pub fn update_window_mode(
+pub(crate) fn update_window_mode(
     changed_windows: Query<
         (Entity, &WindowMode, &WindowResolution),
         (With<Window>, Changed<WindowMode>),
@@ -130,7 +128,7 @@ pub fn update_window_mode(
     }
 }
 
-pub fn update_resolution(
+pub(crate) fn update_resolution(
     changed_windows: Query<(Entity, &WindowResolution), (With<Window>, Changed<WindowResolution>)>,
     winit_windows: NonSendMut<WinitWindows>,
 ) {
@@ -143,7 +141,7 @@ pub fn update_resolution(
     }
 }
 
-pub fn update_cursor_position(
+pub(crate) fn update_cursor_position(
     changed_windows: Query<(Entity, &CursorPosition), (With<Window>, Changed<CursorPosition>)>,
     winit_windows: NonSendMut<WinitWindows>,
 ) {
@@ -166,7 +164,7 @@ pub fn update_cursor_position(
     }
 }
 
-pub fn update_cursor(
+pub(crate) fn update_cursor(
     changed_windows: Query<(Entity, &Cursor), (With<Window>, Changed<Cursor>)>,
     winit_windows: NonSendMut<WinitWindows>,
 ) {
@@ -184,7 +182,7 @@ pub fn update_cursor(
     }
 }
 
-pub fn update_resize_constraints(
+pub(crate) fn update_resize_constraints(
     changed_windows: Query<
         (Entity, &WindowResizeConstraints),
         (With<Window>, Changed<WindowResizeConstraints>),
@@ -211,7 +209,7 @@ pub fn update_resize_constraints(
     }
 }
 
-pub fn update_window_position(
+pub(crate) fn update_window_position(
     changed_windows: Query<
         (Entity, &WindowPosition, &WindowResolution),
         (With<Window>, Changed<WindowPosition>),
@@ -233,7 +231,7 @@ pub fn update_window_position(
     }
 }
 
-pub fn update_window_state(
+pub(crate) fn update_window_state(
     changed_windows: Query<(Entity, &WindowState), (With<Window>, Changed<WindowState>)>,
     winit_windows: NonSendMut<WinitWindows>,
 ) {

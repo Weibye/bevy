@@ -43,7 +43,7 @@ use winit::{
 };
 
 #[cfg(target_arch = "wasm32")]
-use crate::web_resize::{ CanvasParentResizePlugin, CanvasParentResizeEventChannel };
+use crate::web_resize::{CanvasParentResizeEventChannel, CanvasParentResizePlugin};
 
 #[derive(Default)]
 pub struct WinitPlugin;
@@ -100,7 +100,8 @@ impl Plugin for WinitPlugin {
             #[cfg(target_arch = "wasm32")]
             let (commands, event_loop, new_windows, winit_windows, event_channel) =
                 system_state.get_mut(&mut app.world);
-
+            #[cfg(target_arch = "wasm32")]
+            #[cfg(target_arch = "wasm32")]
             // Here we need to create a winit-window and give it a WindowHandle which the renderer can use.
             // It needs to be spawned before the start of the startup-stage, so we cannot use a regular system.
             // Instead we need to create the window and spawn it using direct world access
@@ -244,12 +245,23 @@ pub fn winit_runner(mut app: App) {
 
     trace!("Entering winit event loop");
 
+    #[cfg(not(target_arch = "wasm32"))]
     let mut create_window_system_state: SystemState<(
         Commands,
         Query<(Entity, WindowComponents), Added<Window>>,
         NonSendMut<WinitWindows>,
         Res<WinitSettings>,
         Query<&WindowFocus, With<Window>>,
+    )> = SystemState::from_world(&mut app.world);
+
+    #[cfg(target_arch = "wasm32")]
+    let mut create_window_system_state: SystemState<(
+        Commands,
+        Query<(Entity, WindowComponents), Added<Window>>,
+        NonSendMut<WinitWindows>,
+        Res<WinitSettings>,
+        Query<&WindowFocus, With<Window>>,
+        ResMut<CanvasParentResizeEventChannel>,
     )> = SystemState::from_world(&mut app.world);
 
     let event_handler = move |event: Event<()>,
@@ -619,15 +631,33 @@ pub fn winit_runner(mut app: App) {
                 winit_state.active = true;
             }
             event::Event::MainEventsCleared => {
+                #[cfg(not(target_arch = "wasm32"))]
                 let (mut commands, new_windows, winit_windows, winit_config, window_focused_query) =
                     create_window_system_state.get_mut(&mut app.world);
+
+                #[cfg(target_arch = "wasm32")]
+                let (
+                    mut commands,
+                    new_windows,
+                    winit_windows,
+                    winit_config,
+                    window_focused_query,
+                    event_channel,
+                ) = create_window_system_state.get_mut(&mut app.world);
 
                 for (window, components) in &new_windows {
                     commands.entity(window).insert(*components.state);
                 }
 
                 // Responsible for creating new windows
-                create_window(commands, event_loop, new_windows, winit_windows);
+                create_window(
+                    commands,
+                    event_loop,
+                    new_windows,
+                    winit_windows,
+                    #[cfg(target_arch = "wasm32")]
+                    event_channel,
+                );
 
                 let update = if winit_state.active {
                     // True if _any_ windows are currently being focused

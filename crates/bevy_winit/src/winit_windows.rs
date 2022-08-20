@@ -93,7 +93,7 @@ impl WinitWindows {
             use wasm_bindgen::JsCast;
             use winit::platform::web::WindowBuilderExtWebSys;
 
-            if let Some(selector) = &components.canvas.canvas {
+            if let Some(selector) = &components.canvas.canvas() {
                 let window = web_sys::window().unwrap();
                 let document = window.document().unwrap();
                 let canvas = document
@@ -131,7 +131,7 @@ impl WinitWindows {
         {
             use winit::platform::web::WindowExtWebSys;
 
-            if &components.canvas.canvas.is_none() {
+            if components.canvas.canvas().is_none() {
                 let canvas = winit_window.canvas();
 
                 let window = web_sys::window().unwrap();
