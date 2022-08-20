@@ -104,15 +104,12 @@ impl Plugin for WinitPlugin {
             // Here we need to create a winit-window and give it a WindowHandle which the renderer can use.
             // It needs to be spawned before the start of the startup-stage, so we cannot use a regular system.
             // Instead we need to create the window and spawn it using direct world access
-            #[cfg(not(target_arch = "wasm32"))]
-            create_window(commands, &**event_loop, new_windows, winit_windows);
-
-            #[cfg(target_arch = "wasm32")]
             create_window(
                 commands,
                 &**event_loop,
                 new_windows,
                 winit_windows,
+                #[cfg(target_arch = "wasm32")]
                 event_channel,
             );
         }
