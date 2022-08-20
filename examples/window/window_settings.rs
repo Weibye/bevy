@@ -3,17 +3,33 @@
 
 use bevy::{
     prelude::*,
-    window::{Cursor, PresentMode, WindowResolution, WindowTitle},
+    window::{Cursor, WindowTitle},
 };
 
+#[cfg(not(target_arch = "wasm32"))]
+use bevy::window::{PresentMode, WindowResolution};
+#[cfg(target_arch = "wasm32")]
+use bevy_internal::window::WindowCanvas;
+
 fn main() {
+    #[cfg(not(target_arch = "wasm32"))]
+    let window_settings = WindowBundle {
+        title: WindowTitle::new("I am a window!"),
+        resolution: WindowResolution::new(500., 300.),
+        present_mode: PresentMode::AutoVsync,
+        ..default()
+    };
+
+    #[cfg(target_arch = "wasm32")]
+    let window_settings = WindowBundle {
+        // Tells wasm to resize the window according to the available canvas
+        canvas: WindowCanvas::new(None, true),
+        ..default()
+    };
+
     App::new()
-        .insert_resource(WindowBundle {
-            title: WindowTitle::new("I am a window!"),
-            resolution: WindowResolution::new(500., 300.),
-            present_mode: PresentMode::AutoVsync,
-            ..default()
-        })
+        // Inserts the settings defining the first window to be spawned.
+        .insert_resource(window_settings)
         .add_plugins(DefaultPlugins)
         .add_system(change_title)
         .add_system(toggle_cursor)

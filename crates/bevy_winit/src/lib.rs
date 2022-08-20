@@ -100,8 +100,7 @@ impl Plugin for WinitPlugin {
             #[cfg(target_arch = "wasm32")]
             let (commands, event_loop, new_windows, winit_windows, event_channel) =
                 system_state.get_mut(&mut app.world);
-            #[cfg(target_arch = "wasm32")]
-            #[cfg(target_arch = "wasm32")]
+
             // Here we need to create a winit-window and give it a WindowHandle which the renderer can use.
             // It needs to be spawned before the start of the startup-stage, so we cannot use a regular system.
             // Instead we need to create the window and spawn it using direct world access

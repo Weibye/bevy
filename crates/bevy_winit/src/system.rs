@@ -47,6 +47,8 @@ pub(crate) fn create_window(
             .entity(window_entity)
             .insert(WindowHandle::new(winit_window.raw_window_handle()));
 
+        info!("Inserting window handle component on window");
+
         #[cfg(target_arch = "wasm32")]
         {
             if components.canvas.fit_canvas_to_parent() {
