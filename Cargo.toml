@@ -1452,6 +1452,16 @@ description = "Illustrates various features of Bevy UI"
 category = "UI (User Interface)"
 wasm = true
 
+[[example]]
+name = "widgets"
+path = "examples/ui/widgets.rs"
+
+[package.metadata.example.widgets]
+name = "Widgets"
+description = "Illustrates various widgets in Bevy UI"
+category = "UI (User Interface)"
+wasm = true
+
 # Window
 [[example]]
 name = "clear_color"
