@@ -194,6 +194,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                     ..default()
                 });
         
+                // Checkbox container
                 rect01.spawn_bundle(NodeBundle {
                     style: Style {
                         size: Size::new(Val::Auto, Val::Px(45.0)),
@@ -203,15 +204,17 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                         ..default()
                     },
                     ..default()
-                }).with_children(ImageBundle {
-                    style: Style {
-                        size: Size::AUTO,
-                        ..default()  
-                    },
-                    // color: Default::default(),
-                    image: Default::default(),
-                    focus_policy: Default::default(),
-                    ..default()
+                }).with_children(| container | {
+                    container.spawn_bundle(ImageBundle {
+                        style: Style {
+                            size: Size::new(Val::Px(20.0), Val::Px(20.0)),
+                            ..default()
+                        },
+                        // color: Default::default(),
+                        image: asset_server.load("textures/Icons/checkbox-checked.png").into(),
+                        // focus_policy: Default::default(),
+                        ..default()
+                    });
                 });
             });
         });
