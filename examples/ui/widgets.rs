@@ -5,8 +5,15 @@ use bevy::prelude::*;
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .insert_resource(Icons::default())
+        // Startup
         .add_startup_system(setup)
+        .add_startup_system(load_icons)
+        // Systems
         .add_system(button_system)
+        .add_system(button_output)
+        .add_system(toggle_system)
+        .add_system(update_checkbox.after(toggle_system))
         .run();
 }
 
@@ -19,6 +26,19 @@ const H1_FONT_SIZE: f32 = 30.0;
 
 
 const FONT: &str = "fonts/FiraMono-Medium.ttf";
+const CHECKBOX_EMPTY: &str = "textures/Icons/checkbox-empty.png";
+const CHECKBOX_CHECKED: &str = "textures/Icons/checkbox-checked.png";
+
+#[derive(Resource, Default)]
+struct Icons {
+    pub checkbox: Option<Handle<Image>>,
+    pub checkbox_checked: Option<Handle<Image>>,
+}
+
+fn load_icons(mut icons: ResMut<Icons>, asset_server: Res<AssetServer>) {
+    icons.checkbox = Some(asset_server.load(CHECKBOX_EMPTY));
+    icons.checkbox_checked = Some(asset_server.load(CHECKBOX_CHECKED));
+}
 
 fn button_system(
     mut query: Query<(&Interaction, &mut UiColor, &Children),(Changed<Interaction>, With<Button>)>,
@@ -40,6 +60,41 @@ fn button_system(
                 *color = NORMAL_BUTTON.into();
             }
         }
+    }
+}
+
+/// System responsible for toggling the state of buttons that can toggle
+fn toggle_system(
+    mut q: Query<(&mut ToggleState, &Interaction), Changed<Interaction>>
+) {
+    for (mut state, interaction) in &mut q {
+        match *interaction { 
+            Interaction::Clicked => {
+                state.0 = !state.0;
+                info!("Toggled state to {:?}", state.0);
+            }
+            _ => { }
+        }
+    }
+}
+
+fn update_checkbox(
+    mut q: Query<(&mut UiImage, &ToggleState), (Changed<ToggleState>, With<CheckBoxWidget>)>,
+    icons: Res<Icons>,
+) {
+    for (mut image, state) in &mut q {
+        image.0 = if state.0 {
+            icons.checkbox_checked.unwrap()
+        } else {
+            icons.checkbox.unwrap()
+        }
+    }
+}
+
+
+fn button_output(q: Query<(Entity, &Interaction), Changed<Interaction>>) {
+    for (entity, interaction) in &q {
+        info!("Changed: {:?} : {:?}", entity, interaction);
     }
 }
 
@@ -207,16 +262,98 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 }).with_children(| container | {
                     container.spawn_bundle(ImageBundle {
                         style: Style {
-                            size: Size::new(Val::Px(20.0), Val::Px(20.0)),
+                            // For some reason the aspect ratio works when this has _some_ size.
+                            size: Size::new(Val::Px(1.), Val::Auto),
+                            aspect_ratio: Some(1.0),
                             ..default()
                         },
-                        // color: Default::default(),
-                        image: asset_server.load("textures/Icons/checkbox-checked.png").into(),
-                        // focus_policy: Default::default(),
+                        color: Color::BLUE.into(),
+                        image: asset_server.load(CHECKBOX_EMPTY).into(),
                         ..default()
-                    });
+                    })
+                        .insert(Button)
+                        .insert(Interaction::default())
+                        .insert(CheckBoxWidget)
+                        .insert(ToggleState(false));
+
+                    container.spawn_bundle(ImageBundle {
+                        style: Style {
+                            // For some reason the aspect ratio works when this has _some_ size.
+                            size: Size::new(Val::Px(1.), Val::Auto),
+                            aspect_ratio: Some(1.0),
+                            ..default()
+                        },
+                        color: Color::BLUE.into(),
+                        image: asset_server.load(CHECKBOX_EMPTY).into(),
+                        ..default()
+                    })
+                        .insert(Button)
+                        .insert(Interaction::default())
+                        .insert(CheckBoxWidget)
+                        .insert(ToggleState(false));
+
+                    container.spawn_bundle(ImageBundle {
+                        style: Style {
+                            // For some reason the aspect ratio works when this has _some_ size.
+                            size: Size::new(Val::Px(1.), Val::Auto),
+                            // TODO: We should support multiple aspect-ratio policies here:
+                            // Height
+                            aspect_ratio: Some(1.0),
+                            ..default()
+                        },
+                        color: Color::BLUE.into(),
+                        image: asset_server.load(CHECKBOX_EMPTY).into(),
+                        ..default()
+                    })
+                        .insert(Button)
+                        .insert(Interaction::default())
+                        .insert(CheckBoxWidget)
+                        .insert(ToggleState(false));
+                    
+                    container.spawn_bundle(ImageBundle {
+                        style: Style {
+                            // For some reason the aspect ratio works when this has _some_ size.
+                            size: Size::new(Val::Px(1.), Val::Auto),
+                            // TODO: We should support multiple aspect-ratio policies here:
+                            // Height
+                            aspect_ratio: Some(1.0),
+                            ..default()
+                        },
+                        color: Color::BLUE.into(),
+                        image: asset_server.load(CHECKBOX_EMPTY).into(),
+                        ..default()
+                    })
+                        .insert(Button)
+                        .insert(Interaction::default())
+                        .insert(CheckBoxWidget)
+                        .insert(ToggleState(false));
+                    
+                    container.spawn_bundle(ImageBundle {
+                        style: Style {
+                            // For some reason the aspect ratio works when this has _some_ size.
+                            size: Size::new(Val::Px(1.), Val::Auto),
+                            // TODO: We should support multiple aspect-ratio policies here:
+                            // Height
+                            aspect_ratio: Some(1.0),
+                            ..default()
+                        },
+                        color: Color::BLUE.into(),
+                        image: asset_server.load(CHECKBOX_EMPTY).into(),
+                        ..default()
+                    })
+                        .insert(Button)
+                        .insert(Interaction::default())
+                        .insert(CheckBoxWidget)
+                        .insert(ToggleState(false));
                 });
             });
         });
 }
 
+/// Marker component for a CheckBoxWidget
+#[derive(Component)]
+struct CheckBoxWidget;
+
+/// Stores the state of a toggled UI element
+#[derive(Component)]
+struct ToggleState(bool);
