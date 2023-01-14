@@ -29,6 +29,7 @@ pub mod prelude {
     #[doc(hidden)]
     pub use crate::{
         bundle::Bundle,
+        blueprint::EntityBlueprint,
         change_detection::{DetectChanges, DetectChangesMut},
         component::Component,
         entity::Entity,
