@@ -28,8 +28,8 @@ pub mod prelude {
     pub use crate::reflect::{ReflectComponent, ReflectResource};
     #[doc(hidden)]
     pub use crate::{
-        bundle::Bundle,
         blueprint::EntityBlueprint,
+        bundle::Bundle,
         change_detection::{DetectChanges, DetectChangesMut},
         component::Component,
         entity::Entity,
