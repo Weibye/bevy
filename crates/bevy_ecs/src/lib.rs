@@ -5,6 +5,7 @@
 compile_error!("bevy_ecs cannot safely compile for a 16-bit platform.");
 
 pub mod archetype;
+pub mod blueprint;
 pub mod bundle;
 pub mod change_detection;
 pub mod component;
@@ -27,6 +28,7 @@ pub mod prelude {
     pub use crate::reflect::{ReflectComponent, ReflectResource};
     #[doc(hidden)]
     pub use crate::{
+        blueprint::EntityBlueprint,
         bundle::Bundle,
         change_detection::{DetectChanges, DetectChangesMut},
         component::Component,
