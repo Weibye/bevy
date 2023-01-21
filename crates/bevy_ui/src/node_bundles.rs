@@ -126,40 +126,6 @@ pub struct TextBundle {
     pub z_index: ZIndex,
 }
 
-impl TextBundle {
-    /// Create a [`TextBundle`] from a single section.
-    ///
-    /// See [`Text::from_section`] for usage.
-    pub fn from_section(value: impl Into<String>, style: TextStyle) -> Self {
-        Self {
-            text: Text::from_section(value, style),
-            ..Default::default()
-        }
-    }
-
-    /// Create a [`TextBundle`] from a list of sections.
-    ///
-    /// See [`Text::from_sections`] for usage.
-    pub fn from_sections(sections: impl IntoIterator<Item = TextSection>) -> Self {
-        Self {
-            text: Text::from_sections(sections),
-            ..Default::default()
-        }
-    }
-
-    /// Returns this [`TextBundle`] with a new [`TextAlignment`] on [`Text`].
-    pub const fn with_text_alignment(mut self, alignment: TextAlignment) -> Self {
-        self.text.alignment = alignment;
-        self
-    }
-
-    /// Returns this [`TextBundle`] with a new [`Style`].
-    pub const fn with_style(mut self, style: Style) -> Self {
-        self.style = style;
-        self
-    }
-}
-
 /// A UI node that is a button
 #[derive(Bundle, Clone, Debug)]
 pub struct ButtonBundle {
