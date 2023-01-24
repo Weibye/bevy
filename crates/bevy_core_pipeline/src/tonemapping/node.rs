@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use crate::tonemapping::{Tonemapping, TonemappingPipeline};
+use crate::tonemapping::{TonemappingPipeline, ViewTonemappingPipeline};
 use bevy_ecs::prelude::*;
 use bevy_ecs::query::QueryState;
 use bevy_render::{
@@ -15,7 +15,7 @@ use bevy_render::{
 };
 
 pub struct TonemappingNode {
-    query: QueryState<(&'static ViewTarget, Option<&'static Tonemapping>), With<ExtractedView>>,
+    query: QueryState<(&'static ViewTarget, &'static ViewTonemappingPipeline), With<ExtractedView>>,
     cached_texture_bind_group: Mutex<Option<(TextureViewId, BindGroup)>>,
 }
 
@@ -54,14 +54,11 @@ impl Node for TonemappingNode {
             Err(_) => return Ok(()),
         };
 
-        let tonemapping_enabled = tonemapping.map_or(false, |t| t.is_enabled);
-        if !tonemapping_enabled || !target.is_hdr() {
+        if !target.is_hdr() {
             return Ok(());
         }
 
-        let pipeline = match pipeline_cache
-            .get_render_pipeline(tonemapping_pipeline.tonemapping_pipeline_id)
-        {
+        let pipeline = match pipeline_cache.get_render_pipeline(tonemapping.0) {
             Some(pipeline) => pipeline,
             None => return Ok(()),
         };
@@ -75,12 +72,12 @@ impl Node for TonemappingNode {
             Some((id, bind_group)) if source.id() == *id => bind_group,
             cached_bind_group => {
                 let sampler = render_context
-                    .render_device
+                    .render_device()
                     .create_sampler(&SamplerDescriptor::default());
 
                 let bind_group =
                     render_context
-                        .render_device
+                        .render_device()
                         .create_bind_group(&BindGroupDescriptor {
                             label: None,
                             layout: &tonemapping_pipeline.texture_bind_group,
@@ -115,7 +112,7 @@ impl Node for TonemappingNode {
         };
 
         let mut render_pass = render_context
-            .command_encoder
+            .command_encoder()
             .begin_render_pass(&pass_descriptor);
 
         render_pass.set_pipeline(pipeline);

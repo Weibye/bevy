@@ -1,8 +1,8 @@
 //! This module contains basic node bundles used to build UIs
 
 use crate::{
-    widget::{Button, ImageMode},
-    BackgroundColor, CalculatedSize, FocusPolicy, Interaction, Node, Style, UiImage, ZIndex,
+    widget::Button, BackgroundColor, CalculatedSize, FocusPolicy, Interaction, Node, Style,
+    UiImage, ZIndex,
 };
 use bevy_ecs::bundle::Bundle;
 use bevy_render::{
@@ -67,13 +67,11 @@ pub struct ImageBundle {
     pub node: Node,
     /// Describes the style including flexbox settings
     pub style: Style,
-    /// Configures how the image should scale
-    pub image_mode: ImageMode,
     /// The calculated size based on the given image
     pub calculated_size: CalculatedSize,
     /// The background color, which serves as a "fill" for this node
     ///
-    /// When combined with `UiImage`, tints the provided image.
+    /// Combines with `UiImage` to tint the provided image.
     pub background_color: BackgroundColor,
     /// The image of the node
     pub image: UiImage,
@@ -98,7 +96,7 @@ pub struct ImageBundle {
 }
 
 /// A UI node that is text
-#[derive(Bundle, Clone, Debug)]
+#[derive(Bundle, Clone, Debug, Default)]
 pub struct TextBundle {
     /// Describes the size of the node
     pub node: Node,
@@ -162,23 +160,6 @@ impl TextBundle {
     }
 }
 
-impl Default for TextBundle {
-    fn default() -> Self {
-        TextBundle {
-            focus_policy: FocusPolicy::Pass,
-            text: Default::default(),
-            node: Default::default(),
-            calculated_size: Default::default(),
-            style: Default::default(),
-            transform: Default::default(),
-            global_transform: Default::default(),
-            visibility: Default::default(),
-            computed_visibility: Default::default(),
-            z_index: Default::default(),
-        }
-    }
-}
-
 /// A UI node that is a button
 #[derive(Bundle, Clone, Debug)]
 pub struct ButtonBundle {
@@ -218,12 +199,12 @@ pub struct ButtonBundle {
 
 impl Default for ButtonBundle {
     fn default() -> Self {
-        ButtonBundle {
-            button: Button,
-            interaction: Default::default(),
-            focus_policy: Default::default(),
+        Self {
+            focus_policy: FocusPolicy::Block,
             node: Default::default(),
+            button: Default::default(),
             style: Default::default(),
+            interaction: Default::default(),
             background_color: Default::default(),
             image: Default::default(),
             transform: Default::default(),

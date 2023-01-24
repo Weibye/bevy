@@ -1,11 +1,11 @@
-//! This example illustrates how to setup and use the [`ProgressBarWidget`].
-//! Any Node that has a `ProgressBar` component *and* an immediate child node
-//! with the `ProgressBarInner` component will be considered a ProgressBar-widget.
+//! This example illustrates how to setup and use the [`StatusBarWidget`].
+//! Any Node that has a `StatusBar` component *and* an immediate child node
+//! with the `StatusBarInner` component will be considered a StatusBar-widget.
 
 use bevy::{
     math::map_range,
     prelude::*,
-    widget::{ProgressBarInner, ProgressBarWidget, WidgetPlugin},
+    widget::{StatusBarInner, StatusBarWidget, WidgetPlugin},
 };
 
 fn main() {
@@ -14,8 +14,8 @@ fn main() {
         .add_plugin(WidgetPlugin)
         .insert_resource(Progress::Completed(2.0))
         .add_startup_system(setup)
-        .add_system(update_progress_state)
-        .add_system(set_widget_progress.after(update_progress_state))
+        .add_system(update_progress)
+        .add_system(set_widget_progress.after(update_progress))
         .add_system(update_widget_text.after(set_widget_progress))
         .run();
 }
@@ -56,7 +56,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 background_color: progress_bar_background.into(),
                 ..default()
             })
-            .insert(ProgressBarWidget::new(0.0, 0., 1.))
+            .insert(StatusBarWidget::new(0.0, 0., 1.))
             .with_children(|outer| {
                 // Inner node of the progress bar that will change size as progress changes.
                 outer
@@ -69,7 +69,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                         background_color: progress_bar_foreground.into(),
                         ..default()
                     })
-                    .insert(ProgressBarInner);
+                    .insert(StatusBarInner);
                 outer.spawn(TextBundle {
                     text: Text::from_section(
                         "Progress Bar",
@@ -101,12 +101,12 @@ enum Progress {
 /// This is a helper system to mimic some changing state.
 /// It will "Load" for a time until it reaches completed,
 /// then it will stay on the "Completed"-state for a time before resetting.
-fn update_progress_state(mut progress: ResMut<Progress>, time: Res<Time>) {
-    let elapsed_time = match *progress {
+fn update_progress(mut status: ResMut<Progress>, time: Res<Time>) {
+    let elapsed_time = match *status {
         Progress::Loading(value) | Progress::Completed(value) => value,
     } + time.delta_seconds();
 
-    *progress = match *progress {
+    *status = match *status {
         Progress::Loading(_) => {
             if elapsed_time >= LOAD_DURATION {
                 Progress::Completed(0.0)
@@ -124,9 +124,9 @@ fn update_progress_state(mut progress: ResMut<Progress>, time: Res<Time>) {
     };
 }
 
-/// This is responsible for updating the value of the [`ProgressBarWidget`] component.
+/// This is responsible for updating the value of the [`StatusBarWidget`] component.
 /// This could be in response to changes in player health values, loading of assets ++.
-fn set_widget_progress(mut q: Query<&mut ProgressBarWidget>, progress: Res<Progress>) {
+fn set_widget_progress(mut q: Query<&mut StatusBarWidget>, progress: Res<Progress>) {
     for mut widget in q.iter_mut() {
         let current_progress = match *progress {
             Progress::Loading(value) => map_range(value, (0., LOAD_DURATION), (0., 1.)),
@@ -138,7 +138,7 @@ fn set_widget_progress(mut q: Query<&mut ProgressBarWidget>, progress: Res<Progr
 
 /// Updates the text of the progress-bar.
 fn update_widget_text(
-    widgets: Query<(&ProgressBarWidget, &Children), Changed<ProgressBarWidget>>,
+    widgets: Query<(&StatusBarWidget, &Children), Changed<StatusBarWidget>>,
     mut q: Query<&mut Text, With<Parent>>,
 ) {
     for (widget, children) in widgets.iter() {
